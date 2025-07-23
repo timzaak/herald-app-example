@@ -1,9 +1,10 @@
-# Firebase Cloud Messaging (FCM) 集成指南
+# Firebase 服务集成指南
 
 ## 已完成的配置
 
 ### 1. 依赖添加
 - ✅ 已在 `pubspec.yaml` 中添加 `firebase_messaging: ^15.1.6`
+- ✅ 已在 `pubspec.yaml` 中添加 `firebase_analytics: ^11.6.0`
 - ✅ 已更新依赖包
 
 ### 2. Android 配置
@@ -14,9 +15,11 @@
 
 ### 3. Flutter 代码
 - ✅ 已创建 `FCMService` 服务类
-- ✅ 已在 `main.dart` 中初始化 FCM
+- ✅ 已创建 `AnalyticsService` 服务类
+- ✅ 已在 `main.dart` 中初始化 FCM 和 Analytics
 - ✅ 已创建 FCM 演示页面
 - ✅ 已添加路由配置
+- ✅ 已添加 Analytics 导航观察者
 
 ## 还需要完成的配置
 
@@ -34,24 +37,30 @@
 
 ## 使用方法
 
-### 1. 访问演示页面
+### 1. 访问 FCM 演示页面
 在应用中导航到 `/fcm_demo` 路径，或者在代码中使用：
 ```dart
 context.go('/fcm_demo');
 ```
 
-### 2. 获取 FCM Token
+### 2. 访问 Analytics 演示页面
+在应用中导航到 `/analytics_demo` 路径，或者在代码中使用：
+```dart
+context.go('/analytics_demo');
+```
+
+### 3. 获取 FCM Token
 ```dart
 String? token = await FCMService.getToken();
 ```
 
-### 3. 订阅/取消订阅主题
+### 4. 订阅/取消订阅主题
 ```dart
 await FCMService.subscribeToTopic('news');
 await FCMService.unsubscribeFromTopic('news');
 ```
 
-### 4. 处理消息
+### 5. 处理消息
 - 前台消息：在 `FCMService._handleForegroundMessage` 中处理
 - 后台消息：在 `FCMService._handleBackgroundMessage` 中处理
 - 应用启动消息：自动检测并处理
@@ -93,3 +102,105 @@ await FCMService.unsubscribeFromTopic('news');
 
 ### 自定义消息处理
 在 `FCMService` 中修改 `_handleForegroundMessage` 和 `_handleBackgroundMessage` 方法
+#
+# Firebase Analytics 使用指南
+
+### 1. 基本事件跟踪
+
+Firebase Analytics 已经配置完成，可以通过 `AnalyticsService` 类来记录各种事件：
+
+```dart
+// 记录页面访问
+AnalyticsService.logScreenView(
+  screenName: '首页',
+  screenClass: 'HomePage',
+);
+
+// 记录登录事件
+AnalyticsService.logLogin(loginMethod: 'email');
+
+// 记录注册事件
+AnalyticsService.logSignUp(signUpMethod: 'email');
+
+// 记录搜索事件
+AnalyticsService.logSearch(searchTerm: '关键词');
+
+// 记录内容查看
+AnalyticsService.logViewContent(
+  contentType: 'article',
+  itemId: '123',
+  itemName: '文章标题',
+);
+
+// 记录自定义事件
+AnalyticsService.logEvent(
+  name: 'button_click',
+  parameters: {
+    'button_name': '提交按钮',
+    'screen': '注册页面',
+  },
+);
+```
+
+### 2. 用户属性设置
+
+可以设置用户属性来进行用户分群分析：
+
+```dart
+// 设置用户ID和角色
+AnalyticsService.setUserProperties(
+  userID: '用户ID',
+  userRole: '普通用户',
+);
+```
+
+### 3. 电子商务事件
+
+支持记录电子商务相关事件：
+
+```dart
+// 添加到购物车
+AnalyticsService.logAddToCart(
+  itemId: '商品ID',
+  itemName: '商品名称',
+  price: 99.9,
+  quantity: 1,
+);
+
+// 购买事件
+AnalyticsService.logPurchase(
+  transactionId: '订单号',
+  value: 99.9,
+  items: [
+    AnalyticsEventItem(
+      itemId: '商品ID',
+      itemName: '商品名称',
+      price: 99.9,
+      quantity: 1,
+    ),
+  ],
+);
+```
+
+### 4. 错误跟踪
+
+可以记录应用内错误：
+
+```dart
+AnalyticsService.logAppError(
+  errorCode: 'ERROR_001',
+  errorMessage: '网络连接失败',
+);
+```
+
+### 5. 禁用数据收集
+
+在某些情况下（如用户选择退出数据收集），可以禁用 Analytics：
+
+```dart
+AnalyticsService.setAnalyticsCollectionEnabled(false);
+```
+
+### 6. 查看数据
+
+登录 Firebase 控制台，在 Analytics 部分可以查看收集的数据和生成的报告。数据通常需要 24 小时才能在控制台中显示。

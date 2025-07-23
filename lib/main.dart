@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:app/api/dio_util.dart';
 import 'package:app/services/version_service.dart';
 import 'package:app/services/fcm_service.dart';
+import 'package:app/services/analytics_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:logging/logging.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import './routes.dart';
 import 'l10n/app_localizations.dart';
 
@@ -30,6 +32,9 @@ void main() {
       
       // 初始化FCM
       await FCMService.initialize();
+      
+      // 初始化Firebase Analytics
+      await AnalyticsService.initialize();
       
       // 检查版本更新
       await VersionService().checkVersion();
@@ -89,7 +94,11 @@ class MyApp extends StatelessWidget {
             colorScheme:
             ColorScheme.fromSwatch().copyWith(secondary: Colors.white),
           ),
-          routerConfig:  appRouter,
+          routerConfig: appRouter,
+          // 添加Firebase Analytics观察者
+          navigatorObservers: [
+            if (!kIsWeb) AnalyticsService.observer,
+          ],
         );
       },
     );

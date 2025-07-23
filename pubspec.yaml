@@ -2,7 +2,7 @@ name: app
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -55,6 +55,7 @@ dependencies:
   flutter_color_plugin: ^1.1.0
   firebase_auth: ^5.5.4
   firebase_messaging: ^15.1.6
+  firebase_analytics: ^11.6.0
   flutter_facebook_auth: ^7.1.2
   google_sign_in: ^6.3.0
   mobile_scanner: ^7.0.0
@@ -83,7 +84,6 @@ dev_dependencies:
   freezed: ^3.0.6
   json_serializable: ^6.9.5
   flutter_launcher_icons: ^0.14.3
-
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -127,8 +127,6 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
-
-
 
 flutter_native_splash:
   color: "#42a5f5"
