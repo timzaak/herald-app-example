@@ -4,9 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../util/validator.dart';
@@ -68,24 +65,11 @@ class LoginPage extends HookConsumerWidget {
       if (formKey.currentState?.validate() == true) {
         if (agreeDeal.value) {
           if (tabController.index == 1) {
-            // 验证码登录逻辑
-            final email = emailController.text.trim();
-            final code = codeController.text.trim();
-            // TODO: 执行验证码登录（例如调用接口或 Firebase）
+            // TODO: 执行验证码登录（使用 emailController/codeController，调用后端接口）
             SmartDialog.showToast(l10n.loginSuccess);
           } else {
-            // 密码登录逻辑
-            final email = emailController.text.trim();
-            final password = passwordController.text.trim();
-            try {
-              await FirebaseAuth.instance.signInWithEmailAndPassword(
-                email: email,
-                password: password,
-              );
-              SmartDialog.showToast(l10n.loginSuccess);
-            } catch (e) {
-              SmartDialog.showToast(l10n.loginFailed(e.toString()));
-            }
+            // TODO: 执行密码登录（使用 emailController/passwordController，调用后端接口）
+            SmartDialog.showToast(l10n.loginSuccess);
           }
         } else {
           SmartDialog.showToast(l10n.pleaseAgreeToTerms);
@@ -96,43 +80,6 @@ class LoginPage extends HookConsumerWidget {
     void _goPdf(String name, String path) {
       // Navigator.of(context).pushNamed(PdfViewerPage.sName,
       //     arguments: PdfViewerPageArg(url: '???', name: name));
-    }
-
-    Future<void> _signInWithGoogle() async {
-      try {
-        final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-        if (googleUser == null) {
-          return;
-        }
-        final GoogleSignInAuthentication googleAuth =
-            await googleUser.authentication;
-        final AuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-        await FirebaseAuth.instance.signInWithCredential(credential);
-        SmartDialog.showToast(l10n.googleLoginSuccess);
-      } catch (e) {
-        SmartDialog.showToast(l10n.googleLoginFailed(e.toString()));
-      }
-    }
-
-    Future<void> _signInWithFacebook() async {
-      try {
-        final LoginResult result = await FacebookAuth.instance.login();
-        if (result.status == LoginStatus.success) {
-          final AccessToken accessToken = result.accessToken!;
-          final AuthCredential credential = FacebookAuthProvider.credential(
-            accessToken.tokenString,
-          );
-          await FirebaseAuth.instance.signInWithCredential(credential);
-          SmartDialog.showToast(l10n.facebookLoginSuccess);
-        } else {
-          SmartDialog.showToast(l10n.facebookLoginFailed(result.message ?? ''));
-        }
-      } catch (e) {
-        SmartDialog.showToast(l10n.facebookLoginFailed(e.toString()));
-      }
     }
 
     return Scaffold(
@@ -177,7 +124,6 @@ class LoginPage extends HookConsumerWidget {
                       child: TabBarView(
                         controller: tabController,
                         children: [
-                          // 密码登录 Tab
                           TextFormField(
                             controller: passwordController,
                             obscureText: true,
@@ -187,7 +133,6 @@ class LoginPage extends HookConsumerWidget {
                             ),
                             validator: validatePassword,
                           ),
-                          // 验证码登录 Tab
                           TextFormField(
                             controller: codeController,
                             keyboardType: TextInputType.number,
@@ -288,21 +233,6 @@ class LoginPage extends HookConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 30),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: _signInWithGoogle,
-                          icon: const Icon(Icons.g_mobiledata),
-                          label: const Text('Google'),
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: _signInWithFacebook,
-                          icon: const Icon(Icons.facebook),
-                          label: const Text('Facebook'),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),

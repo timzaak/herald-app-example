@@ -1,123 +1,91 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import 'package:flutter/foundation.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../account/password_page.dart';
 import '../account/password_type.dart';
 import '../../l10n/app_localizations.dart';
-import '../../services/version_service.dart';
+import '../../core/providers.dart';
 
-class MyPage extends StatefulWidget {
+class MyPage extends HookConsumerWidget {
   static const sName = 'my';
 
   const MyPage({super.key});
 
   @override
-  State<MyPage> createState() => _MyPageState();
-}
-
-class _MyPageState extends State<MyPage> {
-  String _version = '';
-  final _versionService = VersionService();
-
-  @override
-  void initState() {
-    super.initState();
-    _getVersion();
-  }
-
-  Future<void> _getVersion() async {
-    if (!kIsWeb) {
-      final packageInfo = await PackageInfo.fromPlatform();
-      setState(() {
-        _version = packageInfo.version;
-      });
-    }
-  }
-
-  Future<void> _checkVersion() async {
-    if (!kIsWeb) {
-      await _versionService.checkVersion();
-      if (_versionService.hasNewVersion) {
-        await _versionService.showUpgradeDialog();
-      } else {
-        SmartDialog.showToast('当前已是最新版本');
-      }
-    }
-  }
-
-  Future<void> _logout(BuildContext context) async {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    SmartDialog.showLoading();
-    try {
-      await FirebaseAuth.instance.signOut();
-      SmartDialog.dismiss();
-      context.go('/login');
-    } catch (e) {
-      SmartDialog.dismiss();
-      SmartDialog.showToast(l10n.logoutFailed(e.toString()));
-    }
-  }
 
-  Future<void> _deleteAccount(BuildContext context) async {
-    final l10n = AppLocalizations.of(context)!;
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(l10n.deleteAccount),
-          content: Text(l10n.deleteAccountConfirm),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
+    final packageInfoAsync = ref.watch(packageInfoProvider);
+    final version = packageInfoAsync.maybeWhen(
+      data: (info) => info.version,
+      orElse: () => '',
     );
 
-    if (confirmed == true) {
-      SmartDialog.showLoading(msg: l10n.deletingAccount);
-      try {
-        await FirebaseAuth.instance.currentUser?.delete();
-        SmartDialog.dismiss();
-        SmartDialog.showToast(l10n.accountDeletedSuccess);
-        context.go('/login');
-      } on FirebaseAuthException catch (e) {
-        SmartDialog.dismiss();
-        if (e.code == 'requires-recent-login') {
-          SmartDialog.showToast(l10n.requiresRecentLogin);
+    // hasNewVersion 是 checkVersion() 异步写入服务内部状态的，
+    // provider 不感知其变化，这里用本地 useState 持有副本，检查后手动刷新。
+    final versionService = ref.read(versionServiceProvider);
+    final hasNewVersion = useState<bool>(versionService.hasNewVersion);
+
+    Future<void> checkVersion() async {
+      if (!kIsWeb) {
+        await versionService.checkVersion();
+        hasNewVersion.value = versionService.hasNewVersion;
+        if (versionService.hasNewVersion) {
+          await versionService.showUpgradeDialog();
         } else {
-          SmartDialog.showToast(l10n.unexpectedError(e.message ?? ''));
+          SmartDialog.showToast('当前已是最新版本');
         }
-      } catch (e) {
-        SmartDialog.dismiss();
-        SmartDialog.showToast(l10n.unexpectedError(e.toString()));
       }
     }
-  }
 
-  void _viewUserAgreement(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    SmartDialog.showToast('Navigate to ${l10n.userAgreement} (Not Implemented)');
-  }
+    Future<void> logout(BuildContext context) async {
+      final l10n = AppLocalizations.of(context)!;
+      // TODO: 实现登出逻辑（例如清除本地登录态、调用后端登出接口）
+      SmartDialog.showToast(l10n.logout);
+    }
 
-  void _viewPrivacyPolicy(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    SmartDialog.showToast('Navigate to ${l10n.privacyPolicy} (Not Implemented)');
-  }
+    Future<void> deleteAccount(BuildContext context) async {
+      final l10n = AppLocalizations.of(context)!;
+      final bool? confirmed = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(l10n.deleteAccount),
+            content: Text(l10n.deleteAccountConfirm),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(l10n.cancel),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+              ),
+            ],
+          );
+        },
+      );
 
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+      if (confirmed == true) {
+        // TODO: 实现注销账号逻辑（例如调用后端注销接口）
+        SmartDialog.showToast(l10n.deleteAccount);
+      }
+    }
+
+    void viewUserAgreement(BuildContext context) {
+      final l10n = AppLocalizations.of(context)!;
+      SmartDialog.showToast('Navigate to ${l10n.userAgreement} (Not Implemented)');
+    }
+
+    void viewPrivacyPolicy(BuildContext context) {
+      final l10n = AppLocalizations.of(context)!;
+      SmartDialog.showToast('Navigate to ${l10n.privacyPolicy} (Not Implemented)');
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.myAccount),
@@ -127,14 +95,14 @@ class _MyPageState extends State<MyPage> {
           if (!kIsWeb) ListTile(
             leading: const Icon(Icons.system_update),
             title: const Text('版本信息'),
-            subtitle: Text(_version),
+            subtitle: Text(version),
             trailing: Stack(
               children: [
                 IconButton(
                   icon: const Icon(Icons.refresh),
-                  onPressed: _checkVersion,
+                  onPressed: checkVersion,
                 ),
-                if (_versionService.hasNewVersion)
+                if (hasNewVersion.value)
                   Positioned(
                     right: 0,
                     top: 0,
@@ -154,13 +122,13 @@ class _MyPageState extends State<MyPage> {
             leading: const Icon(Icons.policy),
             title: Text(l10n.userAgreement),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _viewUserAgreement(context),
+            onTap: () => viewUserAgreement(context),
           ),
           ListTile(
             leading: const Icon(Icons.privacy_tip),
             title: Text(l10n.privacyPolicy),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _viewPrivacyPolicy(context),
+            onTap: () => viewPrivacyPolicy(context),
           ),
           const Divider(),
           ListTile(
@@ -177,13 +145,13 @@ class _MyPageState extends State<MyPage> {
           ListTile(
             leading: const Icon(Icons.logout),
             title: Text(l10n.logout),
-            onTap: () => _logout(context),
+            onTap: () => logout(context),
           ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.delete_forever, color: Colors.red),
             title: Text(l10n.deleteAccount, style: const TextStyle(color: Colors.red)),
-            onTap: () => _deleteAccount(context),
+            onTap: () => deleteAccount(context),
           ),
         ],
       ),

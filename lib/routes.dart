@@ -9,8 +9,6 @@ import 'pages/index_tab/device_page.dart';
 import 'pages/index_tab/device_qr_scan_page.dart';
 import 'pages/video/video_list_page.dart';
 import 'pages/video/video_player_page.dart';
-import 'pages/fcm_demo_page.dart';
-import 'pages/analytics_demo_page.dart';
 
 import 'pages/account/password_type.dart';
 import 'pages/index_tab/index_page.dart';
@@ -95,18 +93,6 @@ final GoRouter appRouter = GoRouter(
       builder: (BuildContext context, GoRouterState state) {
         final videoUrl = state.pathParameters['videoUrl']!;
         return VideoPlayerPage(videoUrl: Uri.decodeComponent(videoUrl));
-      },
-    ),
-    GoRoute(
-      path: '/fcm_demo',
-      builder: (BuildContext context, GoRouterState state) {
-        return const FCMDemoPage();
-      },
-    ),
-    GoRoute(
-      path: '/analytics_demo',
-      builder: (BuildContext context, GoRouterState state) {
-        return const AnalyticsDemoPage();
       },
     ),
   ],

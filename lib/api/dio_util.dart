@@ -53,25 +53,9 @@ class DioUtil {
     /// 添加缓存拦截器
     //_dio.interceptors.add(DioCacheInterceptors());
 
-
     /// 开启日志打印
-
-
-
-
-    setAuthorization(String token) async {
-      await token_interceptor.setAuthorization(token);
-    }
-
-    clearAuthorization() async {
-      await token_interceptor.clearAuthorization();
-    }
-
-    Future<String?> getAuthorization() async {
-      return await token_interceptor.getAuthorization();
-    }
-
   }
+
   void openLog() {
     _dio.interceptors.add(PrettyDioLogger(responseBody: true));
   }
