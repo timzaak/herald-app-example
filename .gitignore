@@ -15,6 +15,9 @@ migrate_working_dir/
 # ZCode
 .zcode/
 
+# t-tool runtime workspace (PRD/user-story drafts, task state, quality reports, logs)
+.ai/
+
 # IntelliJ related
 *.iml
 *.ipr
