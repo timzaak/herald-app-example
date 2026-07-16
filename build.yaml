@@ -1,0 +1,8 @@
+targets:
+  $default:
+    sources:
+      - $package$
+      - lib/**
+      # OpenAPI spec lives outside lib/; declare it so build_runner tracks
+      # changes and openapi_generator regenerates on spec updates.
+      - packages/api_client/api_spec.json

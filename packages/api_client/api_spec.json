@@ -1,0 +1,1998 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Herald API",
+    "description": "Herald Authentication & Authorization Platform API",
+    "contact": {
+      "name": "Timzaak",
+      "email": "zsy.evan@gmail.com"
+    },
+    "license": {
+      "name": "MIT"
+    },
+    "version": "0.3.2"
+  },
+  "servers": [],
+  "tags": [],
+  "paths": {
+    "/api/auth/browser-token/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "refresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshBrowserTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserTokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "logout",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/auth/status": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "status",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/auth/{realmId}/change_email/confirm/{changeCode}": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirm email change with verification code",
+        "description": "Completes the email change process using the verification code sent to the new email address.",
+        "operationId": "change_email_confirm",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "changeCode",
+            "in": "path",
+            "description": "Change email confirmation code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Email changed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeEmailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email already in use",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{realmId}/change_email/request": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Request to change the email address for the authenticated user",
+        "description": "Initiates an email change process by sending a verification code to the new email address.\nThe user must click the confirmation link in the email to complete the change.",
+        "operationId": "change_email_request",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Change email request accepted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeEmailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email already in use",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{realmId}/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Authenticate user with email/username and password",
+        "description": "Supports both email and username login. Returns a session token or requires TOTP verification\nif two-factor authentication is enabled for the user.",
+        "operationId": "login",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequestPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful login.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{realmId}/login/passkey/2fa/options": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "handle_passkey_2fa_options",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Passkey2faOptionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Passkey second-factor challenge created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Passkey2faOptionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired temporary token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{realmId}/login/passkey/2fa/verify": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "handle_passkey_2fa_verify",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Passkey2faVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Passkey second-factor verification successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyVerifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Passkey verification failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{realmId}/login/passkey/options": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "handle_passkey_options",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyOptionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Passkey login challenge created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyOptionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Passkey is not enabled for this realm",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{realmId}/login/passkey/verify": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "handle_passkey_verify",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Passkey login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyVerifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Passkey verification failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{realmId}/login/verify-totp": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Verify TOTP code for two-factor authentication",
+        "description": "Completes the login process for users with TOTP enabled. Accepts either a TOTP code\nfrom an authenticator app or a backup code. Creates a permanent session on success.",
+        "operationId": "handle_verify_totp",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyTotpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "TOTP verification successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyTotpResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid TOTP code or backup code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{realmId}/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Register new user account",
+        "description": "Creates a new user account with email and optional username. If email verification is required\nfor realm, account will be created in a pending state and a verification email will be sent.",
+        "operationId": "register",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful registration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email already registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{realmId}/reset_password/confirm/{resetCode}": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirm password reset with verification code",
+        "description": "Completes password reset process using verification code sent to user's email.",
+        "operationId": "reset_password_confirm",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resetCode",
+            "in": "path",
+            "description": "Reset password code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordConfirmRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "302": {
+            "description": "Password reset successful; redirecting to the registered Client App URL."
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{realmId}/reset_password/request": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Request password reset",
+        "description": "Initiates a password reset process by sending a verification code to user's email address.\nAlways returns success to prevent email enumeration.",
+        "operationId": "reset_password_request",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Request accepted (always ok).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetPasswordRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{realmId}/turnstile/status": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Get Turnstile configuration status for a realm",
+        "description": "Returns whether Turnstile verification is enabled for the specified realm\nand the site key if enabled. Turnstile is considered enabled when a\n`secret_key` config row exists for the realm; the `site_key` is read from\nits own config row.",
+        "operationId": "get_turnstile_status",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Turnstile status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TurnstileStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{realmId}/verify_email/confirm/{emailVerificationCode}": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirm email verification with code",
+        "description": "Completes email verification process using verification code sent to user's email.\nActivates user account upon successful verification.",
+        "operationId": "verify_email_confirm",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "emailVerificationCode",
+            "in": "path",
+            "description": "Email verification code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Email verified; redirecting to the registered Client App URL."
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{realmId}/verify_email/trigger": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Trigger email verification",
+        "description": "Sends a verification email to specified email address with a confirmation link.\nUsed to initiate email verification for pending accounts.",
+        "operationId": "verify_email_trigger",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailTriggerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Email verification triggered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyEmailTriggerResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "api_key": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Client-app API key (third-party external API)."
+      },
+      "bearer_auth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "AgreementMode": {
+        "type": "string",
+        "enum": [
+          "full_text",
+          "link"
+        ]
+      },
+      "AuthConsentAgreement": {
+        "type": "object",
+        "required": [
+          "agreementType",
+          "versionId"
+        ],
+        "properties": {
+          "agreementType": {
+            "type": "string"
+          },
+          "versionId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "BrowserTokenResponse": {
+        "type": "object",
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "expiresIn",
+          "refreshExpiresIn",
+          "tokenType"
+        ],
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "refreshExpiresIn": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "tokenType": {
+            "type": "string"
+          }
+        }
+      },
+      "ChangeEmailRequest": {
+        "type": "object",
+        "required": [
+          "newEmail"
+        ],
+        "properties": {
+          "newEmail": {
+            "type": "string"
+          }
+        }
+      },
+      "ChangeEmailResponse": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "CredentialClass": {
+        "type": "string",
+        "enum": [
+          "first_party",
+          "custom_user_ui"
+        ]
+      },
+      "CredentialScope": {
+        "type": "string",
+        "enum": [
+          "feature_read",
+          "profile_read",
+          "profile_write_nickname",
+          "change_password",
+          "delete_account",
+          "totp_manage",
+          "passkey_manage",
+          "logout",
+          "points_read",
+          "points_transactions_read",
+          "purchase_read",
+          "purchase_initiate",
+          "purchase_status_read",
+          "invoice_read",
+          "invoice_apply",
+          "subscription_read"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "details": {},
+          "message": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
+      "LegalAgreementSummary": {
+        "type": "object",
+        "description": "Public agreement list item (no `content` body). Shared by the public\nagreements endpoint and the login `consent_required` branch.\n\n`agreement_type` is a raw `String` here (not the enum) so this DTO doubles\nas an OpenAPI-facing shape consumed by `herald-api` / `herald-api-auth`\nwithout forcing those callers to depend on the enum's serde representation.",
+        "required": [
+          "agreement_type",
+          "version_id",
+          "version_no",
+          "effective_at",
+          "mode"
+        ],
+        "properties": {
+          "agreement_type": {
+            "type": "string"
+          },
+          "effective_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "external_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mode": {
+            "$ref": "#/components/schemas/AgreementMode"
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version_no": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "LoginRequestPayload": {
+        "type": "object",
+        "required": [
+          "clientId",
+          "password"
+        ],
+        "properties": {
+          "agreements": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AuthConsentAgreement"
+            }
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "oauthClientId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "password": {
+            "type": "string"
+          },
+          "redirectUri": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "turnstileToken": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "required": [
+          "message",
+          "userId",
+          "realmId",
+          "expiresInSeconds"
+        ],
+        "properties": {
+          "agreements": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/LegalAgreementSummary"
+            }
+          },
+          "consentRequired": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "message": {
+            "type": "string"
+          },
+          "realmId": {
+            "type": "string"
+          },
+          "redirectTo": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requiresTotp": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "secondFactors": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "tempToken": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "LogoutResponse": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "Passkey2faOptionsRequest": {
+        "type": "object",
+        "required": [
+          "tempToken"
+        ],
+        "properties": {
+          "tempToken": {
+            "type": "string"
+          }
+        }
+      },
+      "Passkey2faOptionsResponse": {
+        "type": "object",
+        "required": [
+          "authToken",
+          "options"
+        ],
+        "properties": {
+          "authToken": {
+            "type": "string"
+          },
+          "options": {}
+        }
+      },
+      "Passkey2faVerifyRequest": {
+        "type": "object",
+        "required": [
+          "tempToken",
+          "authToken",
+          "assertion"
+        ],
+        "properties": {
+          "agreements": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AuthConsentAgreement"
+            }
+          },
+          "assertion": {},
+          "authToken": {
+            "type": "string"
+          },
+          "tempToken": {
+            "type": "string"
+          }
+        }
+      },
+      "PasskeyOAuthRequest": {
+        "type": "object",
+        "required": [
+          "clientId",
+          "redirectUri",
+          "state"
+        ],
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "redirectUri": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        }
+      },
+      "PasskeyOptionsRequest": {
+        "type": "object",
+        "required": [
+          "clientId"
+        ],
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "oauth": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PasskeyOAuthRequest"
+              }
+            ]
+          },
+          "turnstileToken": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "PasskeyOptionsResponse": {
+        "type": "object",
+        "required": [
+          "authToken",
+          "options"
+        ],
+        "properties": {
+          "authToken": {
+            "type": "string"
+          },
+          "options": {}
+        }
+      },
+      "PasskeyVerifyRequest": {
+        "type": "object",
+        "required": [
+          "authToken",
+          "assertion"
+        ],
+        "properties": {
+          "agreements": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AuthConsentAgreement"
+            }
+          },
+          "assertion": {},
+          "authToken": {
+            "type": "string"
+          }
+        }
+      },
+      "PasskeyVerifyResponse": {
+        "type": "object",
+        "required": [
+          "message",
+          "userId",
+          "token",
+          "expiresInSeconds"
+        ],
+        "properties": {
+          "agreements": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/LegalAgreementSummary"
+            }
+          },
+          "consentRequired": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "message": {
+            "type": "string"
+          },
+          "redirectTo": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "token": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          }
+        }
+      },
+      "RefreshBrowserTokenRequest": {
+        "type": "object",
+        "required": [
+          "clientId",
+          "refreshToken"
+        ],
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Internal Client App UUID returned by Client App discovery/configuration."
+          },
+          "refreshToken": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "clientId",
+          "email",
+          "password"
+        ],
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "turnstileToken": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "RegisterResponse": {
+        "type": "object",
+        "required": [
+          "message",
+          "verificationRequired"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "verificationRequired": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ResetPasswordConfirmRequest": {
+        "type": "object",
+        "required": [
+          "newPass"
+        ],
+        "properties": {
+          "newPass": {
+            "type": "string"
+          },
+          "turnstileToken": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ResetPasswordRequestRequest": {
+        "type": "object",
+        "required": [
+          "clientId",
+          "email"
+        ],
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "turnstileToken": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ResetPasswordRequestResponse": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "StatusResponse": {
+        "type": "object",
+        "required": [
+          "authenticated",
+          "credentialClass",
+          "scopes"
+        ],
+        "properties": {
+          "authenticated": {
+            "type": "boolean"
+          },
+          "credentialClass": {
+            "$ref": "#/components/schemas/CredentialClass"
+          },
+          "permissions": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Retained in the response shape for clients that display RBAC grants;\nbrowser-token authorization itself is governed by `scopes`."
+          },
+          "realmId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CredentialScope"
+            }
+          },
+          "userId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "TurnstileStatusResponse": {
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "site_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "VerifyEmailTriggerRequest": {
+        "type": "object",
+        "required": [
+          "clientId",
+          "email"
+        ],
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "turnstileToken": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "VerifyEmailTriggerResponse": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "VerifyTotpRequest": {
+        "type": "object",
+        "required": [
+          "tempToken"
+        ],
+        "properties": {
+          "agreements": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AuthConsentAgreement"
+            }
+          },
+          "backupCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tempToken": {
+            "type": "string"
+          }
+        }
+      },
+      "VerifyTotpResponse": {
+        "type": "object",
+        "required": [
+          "message",
+          "userId",
+          "token",
+          "expiresInSeconds"
+        ],
+        "properties": {
+          "agreements": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/LegalAgreementSummary"
+            }
+          },
+          "consentRequired": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "message": {
+            "type": "string"
+          },
+          "redirectTo": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "token": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
