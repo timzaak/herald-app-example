@@ -63,7 +63,10 @@ class MyPage extends HookConsumerWidget {
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+                child: Text(
+                  l10n.delete,
+                  style: const TextStyle(color: Colors.red),
+                ),
               ),
             ],
           );
@@ -78,46 +81,49 @@ class MyPage extends HookConsumerWidget {
 
     void viewUserAgreement(BuildContext context) {
       final l10n = AppLocalizations.of(context)!;
-      SmartDialog.showToast('Navigate to ${l10n.userAgreement} (Not Implemented)');
+      SmartDialog.showToast(
+        'Navigate to ${l10n.userAgreement} (Not Implemented)',
+      );
     }
 
     void viewPrivacyPolicy(BuildContext context) {
       final l10n = AppLocalizations.of(context)!;
-      SmartDialog.showToast('Navigate to ${l10n.privacyPolicy} (Not Implemented)');
+      SmartDialog.showToast(
+        'Navigate to ${l10n.privacyPolicy} (Not Implemented)',
+      );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.myAccount),
-      ),
+      appBar: AppBar(title: Text(l10n.myAccount)),
       body: ListView(
         children: <Widget>[
-          if (!kIsWeb) ListTile(
-            leading: const Icon(Icons.system_update),
-            title: const Text('版本信息'),
-            subtitle: Text(version),
-            trailing: Stack(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: checkVersion,
-                ),
-                if (hasNewVersion.value)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
+          if (!kIsWeb)
+            ListTile(
+              leading: const Icon(Icons.system_update),
+              title: const Text('版本信息'),
+              subtitle: Text(version),
+              trailing: Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: checkVersion,
+                  ),
+                  if (hasNewVersion.value)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
           ListTile(
             leading: const Icon(Icons.policy),
             title: Text(l10n.userAgreement),
@@ -150,7 +156,10 @@ class MyPage extends HookConsumerWidget {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.delete_forever, color: Colors.red),
-            title: Text(l10n.deleteAccount, style: const TextStyle(color: Colors.red)),
+            title: Text(
+              l10n.deleteAccount,
+              style: const TextStyle(color: Colors.red),
+            ),
             onTap: () => deleteAccount(context),
           ),
         ],

@@ -13,14 +13,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:patrol/patrol.dart';
 
 void main() {
-  patrolTest(
-    'app 启动后首页显示 Infinite Scroll 与初始列表项',
-    ($) async {
-      await $.pumpWidgetAndSettle(const ProviderScope(child: MyApp()));
+  patrolTest('app 启动后首页显示 Infinite Scroll 与初始列表项', ($) async {
+    await $.pumpWidgetAndSettle(const ProviderScope(child: MyApp()));
 
-      expect($('Infinite Scroll'), findsOneWidget,
-          reason: '首页 AppBar 标题应为 Infinite Scroll');
-      expect($('Item 1'), findsOneWidget, reason: '初始数据加载后应显示 Item 1');
-    },
-  );
+    expect(
+      $('Infinite Scroll'),
+      findsOneWidget,
+      reason: '首页 AppBar 标题应为 Infinite Scroll',
+    );
+    expect($('Item 1'), findsOneWidget, reason: '初始数据加载后应显示 Item 1');
+  });
 }

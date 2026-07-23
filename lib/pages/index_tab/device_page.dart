@@ -21,9 +21,7 @@ class DevicePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.myDevices),
-      ),
+      appBar: AppBar(title: Text(l10n.myDevices)),
       body: devices.isEmpty
           ? Center(
               child: ElevatedButton.icon(

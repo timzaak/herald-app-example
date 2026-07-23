@@ -33,7 +33,8 @@ class _DeviceQrScanPageState extends State<DeviceQrScanPage> {
     SmartDialog.showLoading(msg: 'Binding device...');
 
     try {
-      final response = await DioUtil.dio.post( // Used DioUtil
+      final response = await DioUtil.dio.post(
+        // Used DioUtil
         'https://www.example.com/device/bind/qr_code',
         data: {'qrcode': qrCodeContent},
       );
@@ -50,13 +51,16 @@ class _DeviceQrScanPageState extends State<DeviceQrScanPage> {
           context.pop(true); // Pass true to indicate success / need for refresh
         }
       } else {
-        SmartDialog.showToast('Failed to bind device: ${response.statusMessage}');
+        SmartDialog.showToast(
+          'Failed to bind device: ${response.statusMessage}',
+        );
       }
     } on DioException catch (e) {
       SmartDialog.dismiss();
       String errorMessage = 'Failed to bind device.';
       if (e.response != null) {
-        errorMessage += ' Server error: ${e.response?.statusCode} ${e.response?.statusMessage}';
+        errorMessage +=
+            ' Server error: ${e.response?.statusCode} ${e.response?.statusMessage}';
       } else {
         errorMessage += ' Network error: ${e.message}';
       }
@@ -65,7 +69,7 @@ class _DeviceQrScanPageState extends State<DeviceQrScanPage> {
       SmartDialog.dismiss();
       SmartDialog.showToast('An unexpected error occurred: $e');
     } finally {
-      if(mounted){
+      if (mounted) {
         setState(() {
           _isProcessing = false;
         });
@@ -88,7 +92,7 @@ class _DeviceQrScanPageState extends State<DeviceQrScanPage> {
               if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
                 final String code = barcodes.first.rawValue!;
                 debugPrint('QR Code detected: $code');
-                _bindDevice(code); 
+                _bindDevice(code);
               }
             },
           ),
@@ -103,10 +107,7 @@ class _DeviceQrScanPageState extends State<DeviceQrScanPage> {
               ),
             ),
           ),
-          if (_isProcessing)
-            const Center(
-              child: CircularProgressIndicator(),
-            ),
+          if (_isProcessing) const Center(child: CircularProgressIndicator()),
         ],
       ),
     );

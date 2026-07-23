@@ -289,6 +289,49 @@
         }
       }
     },
+    "/api/auth/{realmId}/email-otp/status": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Public OTP-login enablement flag for a Realm.",
+        "description": "Reads the `email_otp` / `settings` config row. Returns `{ enabled: false }`\nwhen the config is absent or malformed (opt-in per Realm).",
+        "operationId": "status",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OTP status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailOtpStatusResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/{realmId}/login": {
       "post": {
         "tags": [
@@ -361,6 +404,182 @@
           },
           "429": {
             "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{realmId}/login/email-otp/send": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Send an email OTP login code.",
+        "description": "Issues a one-time verification code for an existing active user, or — if the\nRealm has OTP auto-register enabled — for an unregistered email after consent\nis expressed. Enumeration-resistant: a 200 is returned for non-active or\nnon-existent users (no code sent in those cases), matching the response for\na successful send.",
+        "operationId": "send",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailOtpSendRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Verification code sent (or enumeration-resistant 200).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailOtpSendResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "OTP login not enabled for realm / bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Client App disabled / Turnstile verification failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Consent required (auto-register) or email not registered (auto-register off)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailOtpConflictResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/{realmId}/login/email-otp/verify": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Verify an email OTP login code and issue a session.",
+        "description": "On a matching code: consumes it (one-time), then either logs the existing\nuser in (login-as-consent gate) or auto-registers a new account\n(create-without-password → activate → register-as-consent) and issues a\nBearer token family via `RedisBrowserTokenService`. Returns `BrowserTokenResponse`.",
+        "operationId": "verify",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailOtpVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Verification successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "OTP login not enabled for realm / bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid / expired / exhausted code, or disabled account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
             "content": {
               "application/json": {
                 "schema": {
@@ -1011,18 +1230,27 @@
       }
     },
     "/api/auth/{realmId}/turnstile/status": {
-      "post": {
+      "get": {
         "tags": [
           "auth"
         ],
-        "summary": "Get Turnstile configuration status for a realm",
-        "description": "Returns whether Turnstile verification is enabled for the specified realm\nand the site key if enabled. Turnstile is considered enabled when a\n`secret_key` config row exists for the realm; the `site_key` is read from\nits own config row.",
+        "summary": "Get Turnstile configuration status for a Client App",
+        "description": "Returns whether Turnstile verification is enabled for the specified Client\nApp and the site key to render the widget. Turnstile is fully delegated to\nthe Client App (D-PROTECT-01); the legacy realm_config source is no longer\nread. A missing or disabled Client App is rejected with 401, matching the\nother anonymous Client-App-bound endpoints. Pass `clientId` as a query\nparameter.",
         "operationId": "get_turnstile_status",
         "parameters": [
           {
             "name": "realmId",
             "in": "path",
             "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clientId",
+            "in": "query",
+            "description": "Client App public identifier (1-36 chars)",
             "required": true,
             "schema": {
               "type": "string"
@@ -1042,6 +1270,16 @@
           },
           "400": {
             "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Client app not found or disabled",
             "content": {
               "application/json": {
                 "schema": {
@@ -1273,11 +1511,16 @@
       "ChangeEmailRequest": {
         "type": "object",
         "required": [
-          "newEmail"
+          "newEmail",
+          "reauthToken"
         ],
         "properties": {
           "newEmail": {
             "type": "string"
+          },
+          "reauthToken": {
+            "type": "string",
+            "description": "Fresh re-authentication ticket obtained from `/api/user/reauth/verify`."
           }
         }
       },
@@ -1319,6 +1562,129 @@
           "invoice_apply",
           "subscription_read"
         ]
+      },
+      "EmailOtpConflictResponse": {
+        "type": "object",
+        "description": "Shared body for both 409 branches. `consent_required` carries the current\neffective agreement summaries + `consent_required=true`; `email_not_registered`\ncarries a guidance message and no agreements.",
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "agreements": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/LegalAgreementSummary"
+            }
+          },
+          "code": {
+            "type": "string"
+          },
+          "consentRequired": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "EmailOtpSendRequest": {
+        "type": "object",
+        "required": [
+          "clientId",
+          "email"
+        ],
+        "properties": {
+          "agreements": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AuthConsentAgreement"
+            }
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "turnstileToken": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "EmailOtpSendResponse": {
+        "type": "object",
+        "required": [
+          "message",
+          "expiresInSeconds"
+        ],
+        "properties": {
+          "expiresInSeconds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "EmailOtpStatusResponse": {
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "EmailOtpVerifyRequest": {
+        "type": "object",
+        "required": [
+          "clientId",
+          "email",
+          "code"
+        ],
+        "properties": {
+          "agreements": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AuthConsentAgreement"
+            }
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "turnstileToken": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
       },
       "ErrorResponse": {
         "type": "object",
@@ -1714,15 +2080,9 @@
       "RefreshBrowserTokenRequest": {
         "type": "object",
         "required": [
-          "clientId",
           "refreshToken"
         ],
         "properties": {
-          "clientId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Internal Client App UUID returned by Client App discovery/configuration."
-          },
           "refreshToken": {
             "type": "string"
           }
@@ -1876,7 +2236,7 @@
           "enabled": {
             "type": "boolean"
           },
-          "site_key": {
+          "siteKey": {
             "type": [
               "string",
               "null"

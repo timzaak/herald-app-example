@@ -11,17 +11,20 @@ class VideoListPage extends HookConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final videoList = useState([
       {
-        'snapImage': 'https://via.placeholder.com/150/FF0000/FFFFFF?Text=Video1',
+        'snapImage':
+            'https://via.placeholder.com/150/FF0000/FFFFFF?Text=Video1',
         'time': '10:30',
         'deviceName': 'Device 1',
       },
       {
-        'snapImage': 'https://via.placeholder.com/150/00FF00/FFFFFF?Text=Video2',
+        'snapImage':
+            'https://via.placeholder.com/150/00FF00/FFFFFF?Text=Video2',
         'time': '11:45',
         'deviceName': 'Device 2',
       },
       {
-        'snapImage': 'https://via.placeholder.com/150/0000FF/FFFFFF?Text=Video3',
+        'snapImage':
+            'https://via.placeholder.com/150/0000FF/FFFFFF?Text=Video3',
         'time': '14:20',
         'deviceName': 'Device 1',
       },
@@ -32,9 +35,7 @@ class VideoListPage extends HookConsumerWidget {
 
     if (videoList.value.isEmpty) {
       return Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.videoList),
-        ),
+        appBar: AppBar(title: Text(l10n.videoList)),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -49,9 +50,7 @@ class VideoListPage extends HookConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.videoList),
-      ),
+      appBar: AppBar(title: Text(l10n.videoList)),
       body: RefreshIndicator(
         onRefresh: () async {
           // Simulate a network request

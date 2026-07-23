@@ -368,6 +368,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please read and agree to the User Agreement and Privacy Policy'**
   String get pleaseAgreeToTerms;
+
+  /// No description provided for @totpVerifyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-Factor Verification'**
+  String get totpVerifyTitle;
+
+  /// No description provided for @enterTotpCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code from your authenticator app'**
+  String get enterTotpCode;
+
+  /// No description provided for @totpExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The verification code has expired or the session was locked. Please log in again.'**
+  String get totpExpired;
+
+  /// No description provided for @totpVerify.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get totpVerify;
+
+  /// No description provided for @consentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review and Consent'**
+  String get consentTitle;
+
+  /// No description provided for @consentAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept and Continue'**
+  String get consentAccept;
+
+  /// No description provided for @consentReject.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get consentReject;
+
+  /// No description provided for @consentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please review and accept the following agreements to continue.'**
+  String get consentRequired;
+
+  /// No description provided for @emailOtpNotRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'This email is not registered.'**
+  String get emailOtpNotRegistered;
+
+  /// No description provided for @emailOtpNotRegisteredHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Would you like to register a new account?'**
+  String get emailOtpNotRegisteredHint;
+
+  /// No description provided for @rateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests. Please try again later.'**
+  String get rateLimited;
+
+  /// No description provided for @turnstileFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Human verification failed. Please try again.'**
+  String get turnstileFailed;
+
+  /// No description provided for @accountNotActivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is not activated yet.'**
+  String get accountNotActivated;
+
+  /// No description provided for @resendActivation.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend activation email'**
+  String get resendActivation;
+
+  /// No description provided for @sessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session has expired. Please log in again.'**
+  String get sessionExpired;
+
+  /// No description provided for @register.
+  ///
+  /// In en, this message translates to:
+  /// **'Register'**
+  String get register;
+
+  /// No description provided for @registerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get registerTitle;
+
+  /// No description provided for @enterConfirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please confirm password'**
+  String get enterConfirmPassword;
+
+  /// No description provided for @passwordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match'**
+  String get passwordMismatch;
+
+  /// No description provided for @passwordPolicyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be 8-24 characters and contain uppercase, lowercase, and a digit.'**
+  String get passwordPolicyHint;
+
+  /// No description provided for @registerSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration successful. You can now log in.'**
+  String get registerSuccess;
+
+  /// No description provided for @registerSuccessLoginHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the link below to return to login.'**
+  String get registerSuccessLoginHint;
+
+  /// No description provided for @emailAlreadyRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'This email is already registered.'**
+  String get emailAlreadyRegistered;
+
+  /// No description provided for @emailAlreadyRegisteredHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Try logging in or reset your password.'**
+  String get emailAlreadyRegisteredHint;
+
+  /// No description provided for @verifyEmailPendingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Your Email'**
+  String get verifyEmailPendingTitle;
+
+  /// No description provided for @verifyEmailPendingNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'A verification email has been sent. Please open it to activate your account.'**
+  String get verifyEmailPendingNotice;
+
+  /// No description provided for @resendVerificationEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend verification email'**
+  String get resendVerificationEmail;
+
+  /// No description provided for @verificationEmailSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification email sent.'**
+  String get verificationEmailSent;
+
+  /// No description provided for @resetPasswordConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a New Password'**
+  String get resetPasswordConfirmTitle;
+
+  /// No description provided for @enterResetCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter reset code'**
+  String get enterResetCode;
+
+  /// No description provided for @enterNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter new password'**
+  String get enterNewPassword;
+
+  /// No description provided for @enterConfirmNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please confirm new password'**
+  String get enterConfirmNewPassword;
+
+  /// No description provided for @passwordResetSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Your password has been reset. Please log in.'**
+  String get passwordResetSuccess;
+
+  /// No description provided for @resetCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset code is invalid or expired.'**
+  String get resetCodeInvalid;
+
+  /// No description provided for @backToLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Login'**
+  String get backToLogin;
 }
 
 class _AppLocalizationsDelegate

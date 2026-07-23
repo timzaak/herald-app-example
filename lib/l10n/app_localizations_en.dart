@@ -162,4 +162,118 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get pleaseAgreeToTerms =>
       'Please read and agree to the User Agreement and Privacy Policy';
+
+  @override
+  String get totpVerifyTitle => 'Two-Factor Verification';
+
+  @override
+  String get enterTotpCode =>
+      'Enter the 6-digit code from your authenticator app';
+
+  @override
+  String get totpExpired =>
+      'The verification code has expired or the session was locked. Please log in again.';
+
+  @override
+  String get totpVerify => 'Verify';
+
+  @override
+  String get consentTitle => 'Review and Consent';
+
+  @override
+  String get consentAccept => 'Accept and Continue';
+
+  @override
+  String get consentReject => 'Decline';
+
+  @override
+  String get consentRequired =>
+      'Please review and accept the following agreements to continue.';
+
+  @override
+  String get emailOtpNotRegistered => 'This email is not registered.';
+
+  @override
+  String get emailOtpNotRegisteredHint =>
+      'Would you like to register a new account?';
+
+  @override
+  String get rateLimited => 'Too many requests. Please try again later.';
+
+  @override
+  String get turnstileFailed => 'Human verification failed. Please try again.';
+
+  @override
+  String get accountNotActivated => 'Your account is not activated yet.';
+
+  @override
+  String get resendActivation => 'Resend activation email';
+
+  @override
+  String get sessionExpired => 'Your session has expired. Please log in again.';
+
+  @override
+  String get register => 'Register';
+
+  @override
+  String get registerTitle => 'Create Account';
+
+  @override
+  String get enterConfirmPassword => 'Please confirm password';
+
+  @override
+  String get passwordMismatch => 'Passwords do not match';
+
+  @override
+  String get passwordPolicyHint =>
+      'Password must be 8-24 characters and contain uppercase, lowercase, and a digit.';
+
+  @override
+  String get registerSuccess => 'Registration successful. You can now log in.';
+
+  @override
+  String get registerSuccessLoginHint =>
+      'Tap the link below to return to login.';
+
+  @override
+  String get emailAlreadyRegistered => 'This email is already registered.';
+
+  @override
+  String get emailAlreadyRegisteredHint =>
+      'Try logging in or reset your password.';
+
+  @override
+  String get verifyEmailPendingTitle => 'Verify Your Email';
+
+  @override
+  String get verifyEmailPendingNotice =>
+      'A verification email has been sent. Please open it to activate your account.';
+
+  @override
+  String get resendVerificationEmail => 'Resend verification email';
+
+  @override
+  String get verificationEmailSent => 'Verification email sent.';
+
+  @override
+  String get resetPasswordConfirmTitle => 'Set a New Password';
+
+  @override
+  String get enterResetCode => 'Please enter reset code';
+
+  @override
+  String get enterNewPassword => 'Please enter new password';
+
+  @override
+  String get enterConfirmNewPassword => 'Please confirm new password';
+
+  @override
+  String get passwordResetSuccess =>
+      'Your password has been reset. Please log in.';
+
+  @override
+  String get resetCodeInvalid => 'Reset code is invalid or expired.';
+
+  @override
+  String get backToLogin => 'Back to Login';
 }

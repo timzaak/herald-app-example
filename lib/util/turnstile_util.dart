@@ -1,20 +1,20 @@
 import 'package:cloudflare_turnstile/cloudflare_turnstile.dart';
 import 'package:flutter/foundation.dart'; // For kDebugMode
 
-// TODO: Replace '1x00000000000000000000BB' with your actual Cloudflare Turnstile site key.
-const String _siteKey = '1x00000000000000000000BB';
-
 /// Retrieves the Cloudflare Turnstile token using invisible mode.
 ///
-/// Returns the token [String] on success, or `null` if an error occurs or captcha fails.
-Future<String?> getTurnstileToken() async {
-  final turnstile = CloudflareTurnstile.invisible(
-    siteKey: _siteKey,
-    // You can configure other options here if needed, e.g.,
-    // options: const TurnstileOptions(
-    //   mode: TurnstileMode.invisible,
-    // ),
-  );
+/// Returns the token [String] on success, or `null` if Turnstile is disabled
+/// ([siteKey] is null), the challenge fails, or an error occurs.
+///
+/// [siteKey] is injected by [TurnstileService] per Client App (design §5.4). A
+/// null [siteKey] means Turnstile is disabled for this realm+client — return
+/// null without launching a challenge. There is no hardcoded fallback site key.
+Future<String?> getTurnstileToken({String? siteKey}) async {
+  if (siteKey == null || siteKey.isEmpty) {
+    return null;
+  }
+
+  final turnstile = CloudflareTurnstile.invisible(siteKey: siteKey);
 
   try {
     final String? token = await turnstile.getToken();

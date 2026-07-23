@@ -107,9 +107,7 @@ class VideoPlayerPage extends HookConsumerWidget {
         chewieController.value!.videoPlayerController.value.isInitialized) {
       return Scaffold(
         backgroundColor: Colors.black, // Ensure black background for fullscreen
-        body: Chewie(
-          controller: chewieController.value!,
-        ),
+        body: Chewie(controller: chewieController.value!),
       );
     }
 

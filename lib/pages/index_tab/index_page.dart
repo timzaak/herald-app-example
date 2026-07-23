@@ -22,8 +22,10 @@ class IndexPage extends HookConsumerWidget {
 
       const itemsPerPage = 20;
       final newItems = List.generate(
-          itemsPerPage, (i) => 'Item ${(page.value * itemsPerPage) + i + 1}');
-      
+        itemsPerPage,
+        (i) => 'Item ${(page.value * itemsPerPage) + i + 1}',
+      );
+
       items.value = [...items.value, ...newItems];
       page.value++;
 
@@ -36,7 +38,8 @@ class IndexPage extends HookConsumerWidget {
 
     useEffect(() {
       // Initial data load
-      if (items.value.isEmpty) { // Fetch only if items list is empty
+      if (items.value.isEmpty) {
+        // Fetch only if items list is empty
         fetchMoreItems();
       }
 
@@ -56,29 +59,32 @@ class IndexPage extends HookConsumerWidget {
     }, [scrollController]); // Rerun effect if scrollController instance changes
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Infinite Scroll'),
-      ),
+      appBar: AppBar(title: const Text('Infinite Scroll')),
       body: ListView.builder(
         controller: scrollController,
-        itemCount: items.value.length + (isLoading.value || hasMore.value ? 1 : 0),
+        itemCount:
+            items.value.length + (isLoading.value || hasMore.value ? 1 : 0),
         itemBuilder: (context, index) {
           if (index < items.value.length) {
             return ListTile(title: Text(items.value[index]));
           } else if (isLoading.value) {
-            return const Center(child: Padding(
-              padding: EdgeInsets.all(8.0),
-              child: CircularProgressIndicator(),
-            ));
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: CircularProgressIndicator(),
+              ),
+            );
           } else if (!hasMore.value) {
-            return const Center(child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text('No more items'),
-            ));
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('No more items'),
+              ),
+            );
           }
           // This placeholder is for the case when hasMore is true but not currently loading
           // It prevents null being returned if itemCount logic is slightly off during state transitions
-          return const SizedBox.shrink(); 
+          return const SizedBox.shrink();
         },
       ),
     );

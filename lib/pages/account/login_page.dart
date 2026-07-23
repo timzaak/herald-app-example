@@ -6,8 +6,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../providers/auth_providers.dart';
+import '../../services/auth/auth_error.dart';
+import '../../services/auth/auth_result.dart';
 import '../../util/validator.dart';
-import '../../util/turnstile_util.dart';
 import '../../l10n/app_localizations.dart';
 
 import 'password_page.dart';
@@ -27,6 +29,7 @@ class LoginPage extends HookConsumerWidget {
     final passwordController = useTextEditingController();
     final seconds = useState<int?>(null);
     final agreeDeal = useState<bool>(false);
+    final loading = useState<bool>(false);
     final tabController = useTabController(initialLength: 2, initialIndex: 0);
     final timer = useRef<Timer?>(null);
 
@@ -36,48 +39,185 @@ class LoginPage extends HookConsumerWidget {
       };
     }, []);
 
-    void _getCode() async {
-      if (seconds.value == null) {
-        var v = validateEmail(emailController.text.trim());
-        if (v != null) {
-          SmartDialog.showToast(v);
-        }
-        seconds.value = 60;
-        timer.value = Timer.periodic(const Duration(seconds: 1), (_) {
-          if (seconds.value != null) {
-            seconds.value = seconds.value! - 1;
-            if (seconds.value == 0) {
-              timer.value?.cancel();
-              seconds.value = null;
-            }
-          }
-        });
+    /// Maps an [AuthErrorKind] to a user-facing localized message.
+    String errorForKind(AuthErrorKind kind) {
+      switch (kind) {
+        case AuthErrorKind.invalidCredentials:
+          return l10n.loginFailed(l10n.enterPassword);
+        case AuthErrorKind.accountNotActivated:
+          return l10n.accountNotActivated;
+        case AuthErrorKind.emailNotRegistered:
+          return l10n.emailOtpNotRegistered;
+        case AuthErrorKind.consentRequired:
+          return l10n.consentRequired;
+        case AuthErrorKind.rateLimited:
+          return l10n.rateLimited;
+        case AuthErrorKind.turnstileFailed:
+          return l10n.turnstileFailed;
+        case AuthErrorKind.configMissing:
+          return l10n.unexpectedError('config');
+        case AuthErrorKind.sessionExpired:
+          return l10n.sessionExpired;
+        case AuthErrorKind.network:
+          return l10n.loginFailed(l10n.unexpectedError('network'));
       }
     }
 
-    void _handleLogin() async {
-      final token = await getTurnstileToken();
-      if (token == null) {
-        SmartDialog.showToast(l10n.loginFailed('Captcha verification failed'));
+    /// Reads the optional `returnTo` query param set by the router redirect
+    /// guard (design §4.4.3). Null → fall back to `/index`.
+    String? returnTo() =>
+        GoRouterState.of(context).uri.queryParameters['returnTo'];
+
+    void startCountdown() {
+      seconds.value = 60;
+      timer.value?.cancel();
+      timer.value = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (seconds.value != null) {
+          seconds.value = seconds.value! - 1;
+          if (seconds.value == 0) {
+            timer.value?.cancel();
+            seconds.value = null;
+          }
+        }
+      });
+    }
+
+    Future<void> getCode() async {
+      if (loading.value) return;
+      if (seconds.value != null) return; // still counting down
+      final email = emailController.text.trim();
+      final emailError = validateEmail(email);
+      if (emailError != null) {
+        SmartDialog.showToast(emailError);
         return;
       }
-
-      if (formKey.currentState?.validate() == true) {
-        if (agreeDeal.value) {
-          if (tabController.index == 1) {
-            // TODO: 执行验证码登录（使用 emailController/codeController，调用后端接口）
-            SmartDialog.showToast(l10n.loginSuccess);
-          } else {
-            // TODO: 执行密码登录（使用 emailController/passwordController，调用后端接口）
-            SmartDialog.showToast(l10n.loginSuccess);
-          }
-        } else {
-          SmartDialog.showToast(l10n.pleaseAgreeToTerms);
+      loading.value = true;
+      try {
+        final turnstileToken = await ref
+            .read(turnstileServiceProvider)
+            .obtainToken();
+        final result = await ref
+            .read(authStateProvider.notifier)
+            .sendEmailOtp(email: email, turnstileToken: turnstileToken);
+        if (!context.mounted) return;
+        if (result.sent) {
+          startCountdown();
+          return;
         }
+        if (result.agreements != null) {
+          // consent_required on send — route to /consent and replay email-otp.
+          context.go(
+            '/consent',
+            extra: {
+              'agreements': result.agreements,
+              'originalFlow': {'kind': 'email-otp', 'email': email},
+            },
+          );
+          return;
+        }
+        final error = result.error;
+        if (error != null) {
+          SmartDialog.showToast(errorForKind(error.kind));
+        }
+      } finally {
+        if (context.mounted) loading.value = false;
       }
     }
 
-    void _goPdf(String name, String path) {
+    Future<void> submitPassword(String email, String password) async {
+      final turnstileToken = await ref
+          .read(turnstileServiceProvider)
+          .obtainToken();
+      final result = await ref
+          .read(authStateProvider.notifier)
+          .loginWithPassword(
+            email: email,
+            password: password,
+            turnstileToken: turnstileToken,
+          );
+      if (!context.mounted) return;
+      switch (result) {
+        case AuthSuccess():
+          context.go(returnTo() ?? '/index');
+        case AuthRequiresTotp(:final tempToken, :final secondFactors):
+          context.go(
+            '/totp-verify',
+            extra: {'tempToken': tempToken, 'secondFactors': secondFactors},
+          );
+        case AuthConsentRequired(:final agreements):
+          context.go(
+            '/consent',
+            extra: {
+              'agreements': agreements,
+              'originalFlow': {
+                'kind': 'password',
+                'email': email,
+                'password': password,
+              },
+            },
+          );
+        case AuthFailure(:final error):
+          SmartDialog.showToast(errorForKind(error.kind));
+      }
+    }
+
+    Future<void> submitEmailOtp(String email, String code) async {
+      final turnstileToken = await ref
+          .read(turnstileServiceProvider)
+          .obtainToken();
+      final result = await ref
+          .read(authStateProvider.notifier)
+          .loginWithEmailOtp(
+            email: email,
+            code: code,
+            turnstileToken: turnstileToken,
+          );
+      if (!context.mounted) return;
+      switch (result) {
+        case AuthSuccess():
+          context.go(returnTo() ?? '/index');
+        case AuthRequiresTotp(:final tempToken, :final secondFactors):
+          // Not expected on the email-otp verify endpoint, but handle
+          // defensively per the item spec — route to /totp-verify.
+          context.go(
+            '/totp-verify',
+            extra: {'tempToken': tempToken, 'secondFactors': secondFactors},
+          );
+        case AuthConsentRequired(:final agreements):
+          context.go(
+            '/consent',
+            extra: {
+              'agreements': agreements,
+              'originalFlow': {'kind': 'email-otp', 'email': email},
+            },
+          );
+        case AuthFailure(:final error):
+          SmartDialog.showToast(errorForKind(error.kind));
+      }
+    }
+
+    Future<void> handleLogin() async {
+      if (loading.value) return;
+      if (formKey.currentState?.validate() != true) return;
+      // Agreement checkbox is required only on the password tab (item §3).
+      if (tabController.index == 0 && !agreeDeal.value) {
+        SmartDialog.showToast(l10n.pleaseAgreeToTerms);
+        return;
+      }
+      loading.value = true;
+      try {
+        final email = emailController.text.trim();
+        if (tabController.index == 0) {
+          await submitPassword(email, passwordController.text);
+        } else {
+          await submitEmailOtp(email, codeController.text.trim());
+        }
+      } finally {
+        if (context.mounted) loading.value = false;
+      }
+    }
+
+    void goPdf(String name, String path) {
       // Navigator.of(context).pushNamed(PdfViewerPage.sName,
       //     arguments: PdfViewerPageArg(url: '???', name: name));
     }
@@ -106,11 +246,12 @@ class LoginPage extends HookConsumerWidget {
                       controller: tabController,
                       tabs: [
                         Tab(text: l10n.passwordLogin),
-                        Tab(text: l10n.verificationCodeLogin)
+                        Tab(text: l10n.verificationCodeLogin),
                       ],
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
+                      key: const ValueKey('loginEmailField'),
                       controller: emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(hintText: l10n.enterEmail),
@@ -125,6 +266,7 @@ class LoginPage extends HookConsumerWidget {
                         controller: tabController,
                         children: [
                           TextFormField(
+                            key: const ValueKey('loginPasswordField'),
                             controller: passwordController,
                             obscureText: true,
                             keyboardType: TextInputType.visiblePassword,
@@ -134,16 +276,20 @@ class LoginPage extends HookConsumerWidget {
                             validator: validatePassword,
                           ),
                           TextFormField(
+                            key: const ValueKey('loginCodeField'),
                             controller: codeController,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
                               hintText: l10n.enterVerificationCode,
                               suffixIcon: TextButton(
-                                onPressed: _getCode,
+                                key: const ValueKey('loginGetCodeButton'),
+                                onPressed: loading.value ? null : getCode,
                                 child: Text(
                                   seconds.value == null
                                       ? l10n.getVerificationCode
-                                      : l10n.resendCode(seconds.value.toString()),
+                                      : l10n.resendCode(
+                                          seconds.value.toString(),
+                                        ),
                                 ),
                               ),
                             ),
@@ -183,18 +329,17 @@ class LoginPage extends HookConsumerWidget {
                                     horizontal: VisualDensity.minimumDensity,
                                     vertical: VisualDensity.minimumDensity,
                                   ),
-                                  onChanged:
-                                      (_) => agreeDeal.value = !agreeDeal.value,
+                                  onChanged: (_) =>
+                                      agreeDeal.value = !agreeDeal.value,
                                 ),
                               ),
                             ),
                             TextSpan(text: '${l10n.iHaveReadAndAgree} '),
                             TextSpan(
                               text: l10n.userAgreement,
-                              recognizer:
-                                  TapGestureRecognizer()
-                                    ..onTap =
-                                        () => _goPdf(l10n.userAgreement, 'user_deal.pdf'),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () =>
+                                    goPdf(l10n.userAgreement, 'user_deal.pdf'),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -202,18 +347,19 @@ class LoginPage extends HookConsumerWidget {
                             TextSpan(text: ' ${l10n.and} '),
                             TextSpan(
                               text: l10n.privacyPolicy,
-                              recognizer:
-                                  TapGestureRecognizer()
-                                    ..onTap =
-                                        () => _goPdf(
-                                          l10n.privacyPolicy,
-                                          'privacy_protect.pdf',
-                                        ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () => goPdf(
+                                  l10n.privacyPolicy,
+                                  'privacy_protect.pdf',
+                                ),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            TextSpan(text: '，${l10n.unregisteredEmailWillCreateAccount}'),
+                            TextSpan(
+                              text:
+                                  '，${l10n.unregisteredEmailWillCreateAccount}',
+                            ),
                           ],
                         ),
                       ),
@@ -222,9 +368,13 @@ class LoginPage extends HookConsumerWidget {
                     SizedBox(
                       width: double.infinity,
                       child: TextButton(
-                        onPressed: _handleLogin,
+                        key: const ValueKey('loginSubmitButton'),
+                        onPressed: loading.value ? null : handleLogin,
                         style: TextButton.styleFrom(
                           backgroundColor: Colors.blueAccent,
+                          disabledBackgroundColor: Colors.blueAccent.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                         child: Text(
                           l10n.login,

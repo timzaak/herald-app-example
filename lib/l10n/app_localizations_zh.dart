@@ -158,6 +158,111 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pleaseAgreeToTerms => '请阅读并同意用户协议和隐私保护协议';
+
+  @override
+  String get totpVerifyTitle => '二次验证';
+
+  @override
+  String get enterTotpCode => '请输入验证器应用中的 6 位动态码';
+
+  @override
+  String get totpExpired => '验证码已过期或会话被锁定，请重新登录。';
+
+  @override
+  String get totpVerify => '验证';
+
+  @override
+  String get consentTitle => '阅读并同意';
+
+  @override
+  String get consentAccept => '同意并继续';
+
+  @override
+  String get consentReject => '拒绝';
+
+  @override
+  String get consentRequired => '请阅读并同意以下协议以继续。';
+
+  @override
+  String get emailOtpNotRegistered => '该邮箱尚未注册。';
+
+  @override
+  String get emailOtpNotRegisteredHint => '是否前往注册新账号？';
+
+  @override
+  String get rateLimited => '请求过于频繁，请稍后再试。';
+
+  @override
+  String get turnstileFailed => '人机校验失败，请重试。';
+
+  @override
+  String get accountNotActivated => '您的账号尚未激活。';
+
+  @override
+  String get resendActivation => '重新发送激活邮件';
+
+  @override
+  String get sessionExpired => '会话已过期，请重新登录。';
+
+  @override
+  String get register => '注册';
+
+  @override
+  String get registerTitle => '创建账号';
+
+  @override
+  String get enterConfirmPassword => '请确认密码';
+
+  @override
+  String get passwordMismatch => '两次输入的密码不一致';
+
+  @override
+  String get passwordPolicyHint => '密码长度需在 8~24 位之间，且需同时包含大小写字母和数字。';
+
+  @override
+  String get registerSuccess => '注册成功，您现在可以登录了。';
+
+  @override
+  String get registerSuccessLoginHint => '点击下方链接返回登录。';
+
+  @override
+  String get emailAlreadyRegistered => '该邮箱已被注册。';
+
+  @override
+  String get emailAlreadyRegisteredHint => '请尝试登录或找回密码。';
+
+  @override
+  String get verifyEmailPendingTitle => '验证您的邮箱';
+
+  @override
+  String get verifyEmailPendingNotice => '验证邮件已发送，请打开邮件以激活您的账号。';
+
+  @override
+  String get resendVerificationEmail => '重新发送验证邮件';
+
+  @override
+  String get verificationEmailSent => '验证邮件已发送。';
+
+  @override
+  String get resetPasswordConfirmTitle => '设置新密码';
+
+  @override
+  String get enterResetCode => '请输入重置码';
+
+  @override
+  String get enterNewPassword => '请输入新密码';
+
+  @override
+  String get enterConfirmNewPassword => '请确认新密码';
+
+  @override
+  String get passwordResetSuccess => '密码已重置，请重新登录。';
+
+  @override
+  String get resetCodeInvalid => '重置码无效或已过期。';
+
+  @override
+  String get backToLogin => '返回登录';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -314,4 +419,109 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get pleaseAgreeToTerms => '請閱讀並同意用戶協議和隱私保護協議';
+
+  @override
+  String get totpVerifyTitle => '二次驗證';
+
+  @override
+  String get enterTotpCode => '請輸入驗證器應用中的 6 位動態碼';
+
+  @override
+  String get totpExpired => '驗證碼已過期或工作階段已被鎖定，請重新登入。';
+
+  @override
+  String get totpVerify => '驗證';
+
+  @override
+  String get consentTitle => '閱讀並同意';
+
+  @override
+  String get consentAccept => '同意並繼續';
+
+  @override
+  String get consentReject => '拒絕';
+
+  @override
+  String get consentRequired => '請閱讀並同意以下協議以繼續。';
+
+  @override
+  String get emailOtpNotRegistered => '此電子郵件尚未註冊。';
+
+  @override
+  String get emailOtpNotRegisteredHint => '是否前往註冊新帳號？';
+
+  @override
+  String get rateLimited => '請求過於頻繁，請稍後再試。';
+
+  @override
+  String get turnstileFailed => '人機驗證失敗，請重試。';
+
+  @override
+  String get accountNotActivated => '您的帳號尚未啟用。';
+
+  @override
+  String get resendActivation => '重新發送啟用郵件';
+
+  @override
+  String get sessionExpired => '工作階段已過期，請重新登入。';
+
+  @override
+  String get register => '註冊';
+
+  @override
+  String get registerTitle => '建立帳號';
+
+  @override
+  String get enterConfirmPassword => '請確認密碼';
+
+  @override
+  String get passwordMismatch => '兩次輸入的密碼不一致';
+
+  @override
+  String get passwordPolicyHint => '密碼長度需在 8~24 位之間，且需同時包含大小寫字母和數字。';
+
+  @override
+  String get registerSuccess => '註冊成功，您現在可以登入了。';
+
+  @override
+  String get registerSuccessLoginHint => '點擊下方連結返回登入。';
+
+  @override
+  String get emailAlreadyRegistered => '此電子郵件已被註冊。';
+
+  @override
+  String get emailAlreadyRegisteredHint => '請嘗試登入或找回密碼。';
+
+  @override
+  String get verifyEmailPendingTitle => '驗證您的電子郵件';
+
+  @override
+  String get verifyEmailPendingNotice => '驗證郵件已發送，請開啟郵件以啟用您的帳號。';
+
+  @override
+  String get resendVerificationEmail => '重新發送驗證郵件';
+
+  @override
+  String get verificationEmailSent => '驗證郵件已發送。';
+
+  @override
+  String get resetPasswordConfirmTitle => '設定新密碼';
+
+  @override
+  String get enterResetCode => '請輸入重置碼';
+
+  @override
+  String get enterNewPassword => '請輸入新密碼';
+
+  @override
+  String get enterConfirmNewPassword => '請確認新密碼';
+
+  @override
+  String get passwordResetSuccess => '密碼已重置，請重新登入。';
+
+  @override
+  String get resetCodeInvalid => '重置碼無效或已過期。';
+
+  @override
+  String get backToLogin => '返回登入';
 }
