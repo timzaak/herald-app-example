@@ -477,13 +477,9 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
 
   Future<void> _persist(AuthSession session) async {
     if (session.refreshToken.isEmpty) return;
-    final expiresAt = session.expiresIn == null
-        ? null
-        : DateTime.now().toUtc().add(Duration(seconds: session.expiresIn!));
     await _tokenStore.save(
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
-      expiresAt: expiresAt,
     );
   }
 

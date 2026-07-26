@@ -22,7 +22,6 @@ import 'package:app/services/auth/token_store.dart';
 class _FakeTokenStore implements TokenStore {
   String? accessToken;
   String? refreshToken;
-  DateTime? expiresAt;
   bool cleared = false;
 
   @override
@@ -32,17 +31,12 @@ class _FakeTokenStore implements TokenStore {
   Future<String?> getRefreshToken() async => refreshToken;
 
   @override
-  Future<DateTime?> getAccessExpiresAt() async => expiresAt;
-
-  @override
   Future<void> save({
     required String accessToken,
     required String refreshToken,
-    DateTime? expiresAt,
   }) async {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
-    this.expiresAt = expiresAt;
     cleared = false;
   }
 
@@ -50,7 +44,6 @@ class _FakeTokenStore implements TokenStore {
   Future<void> clear() async {
     accessToken = null;
     refreshToken = null;
-    expiresAt = null;
     cleared = true;
   }
 }
@@ -296,8 +289,8 @@ void main() {
         );
 
         // Two parallel waiters share a single refresh; both reject with the
-        // original 401; onSessionEnd fires per-waiter (design §5.3 failure path
-        // runs clear+onSessionEnd in each waiter's branch).
+        // original 401; onSessionEnd fires once for the shared refresh (the
+        // cleanup is bound to the single-flight, not per-waiter).
         final adapter2 = _ScriptedAdapter(
           () => [_jsonBody(401, {}), _jsonBody(401, {})],
         );
@@ -334,8 +327,8 @@ void main() {
         expect(tokenStore2.cleared, isTrue);
         expect(
           sessionEnded2,
-          2,
-          reason: 'onSessionEnd runs in each waiter failure branch',
+          1,
+          reason: 'onSessionEnd runs once for the shared refresh',
         );
       },
     );
@@ -388,6 +381,52 @@ void main() {
         );
         // And no Authorization was injected for the refresh request.
         expect(adapter.authorizationHeaders.single, isNull);
+      },
+    );
+
+    test(
+      '(f) a 401 on the replayed request is not refreshed again',
+      () async {
+        final tokenStore = _FakeTokenStore()..accessToken = 'expired-token';
+        var refreshCalls = 0;
+        Future<bool> refreshFn() async {
+          refreshCalls++;
+          // Simulate AuthApi.refresh persisting a new token into the store.
+          await tokenStore.save(
+            accessToken: 'fresh-token',
+            refreshToken: 'fresh-refresh',
+          );
+          return true;
+        }
+
+        // First call 401 (triggers refresh + replay); the replay also 401.
+        // The replayed 401 must surface directly — no second refresh — so a
+        // persistently-401 resource (valid token but no permission, or a new
+        // token that is also rejected) cannot loop refresh forever.
+        final adapter = _ScriptedAdapter(
+          () => [
+            _jsonBody(401, {}),
+            _jsonBody(401, {}),
+          ],
+        );
+        final dio = _buildDio(tokenStore, refreshFn, () async {}, adapter);
+
+        await expectLater(
+          dio.get('/api/auth/status'),
+          throwsA(
+            isA<DioException>().having(
+              (e) => e.response?.statusCode,
+              'statusCode',
+              401,
+            ),
+          ),
+        );
+
+        expect(
+          refreshCalls,
+          1,
+          reason: 'a 401 on the replay must not trigger a second refresh',
+        );
       },
     );
   });

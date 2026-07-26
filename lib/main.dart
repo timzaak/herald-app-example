@@ -42,6 +42,11 @@ void main() {
       // here forces construction before any auth call and matches the frozen
       // FL-D01 contract: ApiClient(dio: DioUtil.dio, basePathOverride:
       // Settings.heraldBaseUrl, interceptors: []).
+      //
+      // Explicitly construct the shared Dio first: DioUtil.dio is a bare Dio()
+      // until _init() runs (which mounts baseUrl + DioAuthInterceptor and calls
+      // attachDio). Do not rely on initLogger()'s openLog() side effect to do it.
+      DioUtil.getInstance();
       heraldContainer.read(apiClientProvider);
 
       final bindings = buildSessionBindings(heraldContainer);

@@ -1,4 +1,4 @@
-package com.aliencell.app
+package com.timzaak.herald
 
 import io.flutter.embedding.android.FlutterActivity
 

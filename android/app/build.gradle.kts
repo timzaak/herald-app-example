@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.aliencell.app"
+    namespace = "com.timzaak.herald"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -17,14 +17,19 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.aliencell.app"
+        applicationId = "com.timzaak.herald"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "pl.leancode.patrol.PatrolJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
+    }
+
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 
     buildTypes {
@@ -47,8 +52,5 @@ flutter {
 }
 
 dependencies {
-    androidTestImplementation("androidx.test:runner:1.6.2")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
-    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
-    androidTestImplementation("androidx.test:core-ktx:1.6.1")
+    androidTestUtil("androidx.test:orchestrator:1.5.1")
 }

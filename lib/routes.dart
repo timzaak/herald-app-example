@@ -45,11 +45,48 @@ const Set<String> _anonymousPaths = {
   '/reset-password-confirm',
 };
 
-final GoRouter appRouter = GoRouter(
+/// Bridges [authStateProvider] into [appRouter] (design §4.4.3).
+///
+/// The redirect guard reads `authStateProvider` synchronously, but a state
+/// flip (e.g. the interceptor's `onSessionEnd` → `markUnauthenticated()` on a
+/// refresh failure, or `logout()`) does not by itself cause the router to
+/// re-evaluate `redirect`. This [ChangeNotifier] subscribes to
+/// [authStateProvider] and calls [notifyListeners] on every change, which the
+/// router's `refreshListenable` wires into a redirect re-evaluation — closing
+/// the contract `markUnauthenticated`'s doc states ("the router redirect
+/// handles the actual `/login` navigation").
+///
+/// Constructed once, when `appRouter` is first dereferenced; the subscription
+/// lives for the process lifetime (mirrors `heraldContainer`'s lifetime).
+class _AuthStateRouterRefreshNotifier extends ChangeNotifier {
+  _AuthStateRouterRefreshNotifier() {
+    // Only `status` flips (authenticated ↔ unauthenticated) require a redirect
+    // re-evaluation. Other AuthState changes (e.g. `loading` during a login
+    // attempt) must NOT trigger the router — doing so rebuilds the current
+    // route mid-interaction (e.g. drops /consent's in-memory state during an
+    // accept-replay). Compare status, not the whole state.
+    AuthStatus? previous = heraldContainer.read(authStateProvider).status;
+    heraldContainer.listen<AuthState>(authStateProvider, (_, next) {
+      if (next.status != previous) {
+        previous = next.status;
+        notifyListeners();
+      }
+    });
+  }
+}
+
+/// The Herald app router. `late final` so the [refreshListenable] can be wired
+/// to [heraldContainer] (which is itself a top-level final initialized before
+/// the first dereference at `runApp(routerConfig: appRouter)`).
+late final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/index',
   observers: [FlutterSmartDialog.observer],
   debugLogDiagnostics: kDebugMode,
+  // Re-evaluate `redirect` whenever `authStateProvider` changes — see
+  // [_AuthStateRouterRefreshNotifier]. Without this, a state flip mid-session
+  // (refresh failure, logout) would not bounce the user off a protected route.
+  refreshListenable: _AuthStateRouterRefreshNotifier(),
   // Login-state redirect guard (design §4.4.3). Reads the frozen top-level
   // `heraldContainer` (declared in `main.dart`) synchronously. When the user
   // hits a protected route while unauthenticated, redirect to `/login` with

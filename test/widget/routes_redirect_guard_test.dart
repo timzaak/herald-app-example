@@ -191,4 +191,39 @@ void main() {
       expect(state.uri.path, '/my');
     },
   );
+
+  testWidgets(
+    'Mid-session authState flip to unauthenticated (refresh failure / logout '
+    'path) auto-redirects to /login without an explicit navigation',
+    (tester) async {
+      // This is the gap the refreshListenable wiring closes: the redirect
+      // guard only re-evaluates on navigation, so a state flip from
+      // `onSessionEnd` (refresh failure) or `logout()` while the user is on a
+      // protected route must itself bounce them to /login. Without
+      // refreshListenable the user would be stuck on a protected page with no
+      // valid session until they tapped somewhere.
+      final harness = await pumpHeraldApp(tester, initialLocation: '/index');
+      harness.container.read(authStateProvider.notifier).seedAuthenticated(true);
+      await tester.pumpAndSettle();
+
+      // Authenticated on a protected route — index renders.
+      expect(find.byType(BottomNavigationBar), findsOneWidget);
+      expect(find.byKey(const ValueKey('loginSubmitButton')), findsNothing);
+
+      // Simulate the interceptor's onSessionEnd: refresh failed, session ended.
+      harness.container
+          .read(authStateProvider.notifier)
+          .markUnauthenticated();
+      await tester.pumpAndSettle();
+
+      // The redirect re-evaluated on the state flip alone — bounced to /login.
+      expect(find.byKey(const ValueKey('loginSubmitButton')), findsOneWidget);
+      expect(find.byType(BottomNavigationBar), findsNothing);
+      final state = GoRouterState.of(
+        tester.element(find.byKey(const ValueKey('loginSubmitButton'))),
+      );
+      expect(state.uri.path, '/login');
+      expect(state.uri.queryParameters['returnTo'], '/index');
+    },
+  );
 }

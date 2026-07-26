@@ -142,7 +142,10 @@ GoRouter _routerForTest(
     initialExtra: initialExtra,
     // Mirror the production redirect (lib/routes.dart) but read from the
     // test's container. Same anonymous-path whitelist, same `/login`-when-
-    // authenticated bounce, same `?returnTo=` encoding.
+    // authenticated bounce, same `?returnTo=` encoding. The
+    // `refreshListenable` mirrors production too: without it, a state flip
+    // mid-session (e.g. markUnauthenticated) would not re-evaluate redirect.
+    refreshListenable: _TestAuthRefreshNotifier(container),
     redirect: (BuildContext context, GoRouterState state) {
       final authed =
           container.read(authStateProvider).status == AuthStatus.authenticated;
@@ -158,6 +161,25 @@ GoRouter _routerForTest(
     },
     routes: appRouter.configuration.routes,
   );
+}
+
+/// Test-only analogue of production `_AuthStateRouterRefreshNotifier`
+/// (lib/routes.dart): bridges this test container's [authStateProvider] into
+/// the test router's `refreshListenable` so a mid-session state flip
+/// re-evaluates the redirect — same behavior as production, but bound to the
+/// test's own container (production reads `heraldContainer`, not this one).
+class _TestAuthRefreshNotifier extends ChangeNotifier {
+  _TestAuthRefreshNotifier(ProviderContainer container) {
+    // Mirror production: only `status` flips re-evaluate redirect. A `loading`
+    // flip (e.g. during /consent's accept-replay) must not rebuild the route.
+    AuthStatus? previous = container.read(authStateProvider).status;
+    container.listen<AuthState>(authStateProvider, (_, next) {
+      if (next.status != previous) {
+        previous = next.status;
+        notifyListeners();
+      }
+    });
+  }
 }
 
 /// Pumps the test binding's fake clock long enough for a SmartDialog toast to

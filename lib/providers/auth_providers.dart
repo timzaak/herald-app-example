@@ -260,14 +260,9 @@ final dioAuthInterceptorProvider = Provider<DioAuthInterceptor>((ref) {
       final accessToken = data.accessToken;
       final newRefresh = data.refreshToken;
       if (accessToken.isEmpty || newRefresh.isEmpty) return false;
-      // BrowserTokenResponse.expiresIn is non-nullable on the wire.
-      final expiresAt = DateTime.now().toUtc().add(
-        Duration(seconds: data.expiresIn),
-      );
       await tokenStore.save(
         accessToken: accessToken,
         refreshToken: newRefresh,
-        expiresAt: expiresAt,
       );
       return true;
     } on Object {

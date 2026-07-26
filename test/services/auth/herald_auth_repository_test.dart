@@ -25,7 +25,6 @@ import 'package:app/services/auth/token_store.dart';
 class _FakeTokenStore implements TokenStore {
   String? accessToken;
   String? refreshToken;
-  DateTime? expiresAt;
 
   @override
   Future<String?> getAccessToken() async => accessToken;
@@ -34,24 +33,18 @@ class _FakeTokenStore implements TokenStore {
   Future<String?> getRefreshToken() async => refreshToken;
 
   @override
-  Future<DateTime?> getAccessExpiresAt() async => expiresAt;
-
-  @override
   Future<void> save({
     required String accessToken,
     required String refreshToken,
-    DateTime? expiresAt,
   }) async {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
-    this.expiresAt = expiresAt;
   }
 
   @override
   Future<void> clear() async {
     accessToken = null;
     refreshToken = null;
-    expiresAt = null;
   }
 }
 
@@ -149,7 +142,6 @@ void main() {
         // Session was persisted before returning so it survives navigation.
         expect(tokenStore.accessToken, 'a1');
         expect(tokenStore.refreshToken, 'r1');
-        expect(tokenStore.expiresAt, isNotNull);
       },
     );
 

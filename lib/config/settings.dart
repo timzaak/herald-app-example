@@ -9,8 +9,7 @@ class Settings {
   static const String heraldClientId = '';
 
   // Token persistence keys (shared_preferences). Consumed by TokenStore and
-  // the startup bootstrap. accessExpiresAt is stored as an ISO-8601 string.
+  // the startup bootstrap.
   static const String accessTokenKey = 'herald.accessToken';
   static const String refreshTokenKey = 'herald.refreshToken';
-  static const String accessExpiresAtKey = 'herald.accessExpiresAt';
 }
