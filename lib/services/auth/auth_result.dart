@@ -61,11 +61,13 @@ class AuthSession {
 /// verify_totp) and from the inline `agreements` array on email-otp verify's
 /// hand-written consent JSON. Only fields the consent page needs are kept.
 class AgreementView {
+  final String agreementType;
   final String id;
   final String title;
   final String? summary;
   final String? externalUrl;
   const AgreementView({
+    required this.agreementType,
     required this.id,
     required this.title,
     this.summary,
@@ -80,13 +82,20 @@ class AgreementView {
 /// [AuthFailure] via [error].
 class SendEmailOtpResult {
   final bool sent;
+  final int? expiresInSeconds;
   final List<AgreementView>? agreements;
   final AuthError? error;
 
-  const SendEmailOtpResult._({this.sent = false, this.agreements, this.error});
+  const SendEmailOtpResult._({
+    this.sent = false,
+    this.expiresInSeconds,
+    this.agreements,
+    this.error,
+  });
 
   /// Code was sent successfully.
-  const SendEmailOtpResult.sent() : this._(sent: true);
+  const SendEmailOtpResult.sent({int? expiresInSeconds})
+    : this._(sent: true, expiresInSeconds: expiresInSeconds);
 
   /// Auto-register requires consent; [agreements] is non-null.
   const SendEmailOtpResult.consent(List<AgreementView> agreements)

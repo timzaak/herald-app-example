@@ -18,15 +18,8 @@ import '../../util/validator.dart';
 /// repository throws [AuthErrorException] on failure; the UI maps `error.kind`
 /// to a localized toast and stays on the page (except on success → `/login`).
 ///
-/// Error-kind mapping note (FL-D04 binding): the repository's
-/// `AuthError.fromDioException` for operation `'resetPasswordConfirm'` maps
-/// every 400 to `configMissing` (Client-App / realm-capability body code) and
-/// 404 / other failures to `network`. The Work §6 expected "400/404 →
-/// `resetCodeInvalid`". Because the FL-D02 contract does not distinguish
-/// invalid-code from network at the `AuthErrorKind` level, we surface
-/// `resetCodeInvalid` for both `network` and `configMissing` (the only two
-/// realistic failure buckets on this op), `rateLimited` directly, and treat
-/// `turnstileFailed` directly. See the class doc deviation note in the report.
+/// Invalid/expired reset codes are classified separately from configuration
+/// and transport failures, so the page does not mislabel server outages.
 class ResetPasswordConfirmPage extends HookConsumerWidget {
   static const sName = 'reset-password-confirm';
 
@@ -49,17 +42,17 @@ class ResetPasswordConfirmPage extends HookConsumerWidget {
           return l10n.rateLimited;
         case AuthErrorKind.turnstileFailed:
           return l10n.turnstileFailed;
-        case AuthErrorKind.network:
-        case AuthErrorKind.configMissing:
-          // 400 (non-configMissing) / 404 / 5xx all collapse to `network`;
-          // Client-App-disabled 400 collapses to `configMissing`. Both are the
-          // realistic failure buckets on this endpoint, and per Work §6 the
-          // user-facing message for an invalid/expired code is
-          // `resetCodeInvalid`. (See class doc for the deviation.)
+        case AuthErrorKind.resetCodeInvalid:
           return l10n.resetCodeInvalid;
+        case AuthErrorKind.network:
+          return l10n.unexpectedError('network');
+        case AuthErrorKind.configMissing:
+          return l10n.unexpectedError('config');
         case AuthErrorKind.invalidCredentials:
         case AuthErrorKind.accountNotActivated:
         case AuthErrorKind.emailNotRegistered:
+        case AuthErrorKind.emailAlreadyRegistered:
+        case AuthErrorKind.verificationCodeInvalid:
         case AuthErrorKind.consentRequired:
         case AuthErrorKind.sessionExpired:
           return l10n.unexpectedError(kind.name);

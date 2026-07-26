@@ -11,6 +11,9 @@ enum AuthErrorKind {
   invalidCredentials,
   accountNotActivated,
   emailNotRegistered,
+  emailAlreadyRegistered,
+  verificationCodeInvalid,
+  resetCodeInvalid,
   consentRequired,
   rateLimited,
   turnstileFailed,
@@ -39,21 +42,22 @@ class AuthError {
   ///   `accountNotActivated`.
   /// - `"emailOtpSend"`: 409 + `email_not_registered` → `emailNotRegistered`;
   ///   409 + `consent_required` → `consentRequired`.
-  /// - `"emailOtpVerify"`: 401 with body code `verify_turnstile_for_client_app`
-  ///   → `turnstileFailed`; other 401 → `invalidCredentials`. The 200 inline
+  /// - `"emailOtpVerify"`: `invalid_code` → `verificationCodeInvalid`;
+  ///   other 401 → `invalidCredentials`. The 200 inline
   ///   `{consentRequired: true, agreements}` branch is handled in the
   ///   repository's lenient parse, NOT here.
   /// - `"totp"`: 401 → `sessionExpired` (tempToken expired / locked; default).
   /// - `"refresh"`: 401 → `sessionExpired`.
   /// - `"turnstileStatus"`: must NOT be passed — [TurnstileService] handles its
   ///   401 internally (caches disabled) and never calls this helper.
-  /// - `"register"` / `"resetPasswordRequest"` / `"resetPasswordConfirm"` /
-  ///   `"resendVerification"`: 400 with Client-App-disabled / realm-capability
-  ///   body code → `configMissing`; 429 → `rateLimited`; other → `network`.
+  /// - `"register"`: `email_already_exists` → `emailAlreadyRegistered`.
+  /// - `"resetPasswordConfirm"`: 400/404 → `resetCodeInvalid`.
+  /// - `"verifyEmailConfirm"`: 400/404 → `verificationCodeInvalid`.
   ///
-  /// Common across all operations: 429 / body code `too_many_requests` →
-  /// `rateLimited`; 400 with Client-App-disabled / realm-capability body code
-  /// → `configMissing`; network exception / 5xx / unrecognized → `network`.
+  /// Common across all operations: 429 / known rate-limit code →
+  /// `rateLimited`; `verify_turnstile_for_client_app` → `turnstileFailed`;
+  /// 400 with Client-App-disabled / realm-capability body code →
+  /// `configMissing`; network exception / 5xx / unrecognized → `network`.
   static AuthError fromDioException(
     DioException e, {
     required String operation,
@@ -63,8 +67,14 @@ class AuthError {
     final bodyCode = _bodyCode(response?.data);
 
     // 429 / explicit too_many_requests always wins.
-    if (statusCode == 429 || bodyCode == 'too_many_requests') {
+    if (statusCode == 429 ||
+        bodyCode == 'too_many_requests' ||
+        bodyCode == 'rate_limit_exceeded') {
       return AuthError(AuthErrorKind.rateLimited, e.toString());
+    }
+
+    if (bodyCode == 'verify_turnstile_for_client_app') {
+      return AuthError(AuthErrorKind.turnstileFailed, e.toString());
     }
 
     // Client-App-disabled / realm-capability-unenabled → configMissing, any op.
@@ -105,8 +115,11 @@ class AuthError {
 
       case 'emailOtpVerify':
         if (statusCode == 401) {
-          if (bodyCode == 'verify_turnstile_for_client_app') {
-            return AuthError(AuthErrorKind.turnstileFailed, e.toString());
+          if (bodyCode == 'invalid_code') {
+            return AuthError(
+              AuthErrorKind.verificationCodeInvalid,
+              e.toString(),
+            );
           }
           // Code invalid / account disabled.
           return AuthError(AuthErrorKind.invalidCredentials, e.toString());
@@ -135,12 +148,26 @@ class AuthError {
         return AuthError(AuthErrorKind.network, e.toString());
 
       case 'register':
-      case 'resetPasswordRequest':
-      case 'resetPasswordConfirm':
-      case 'resendVerification':
-        if (statusCode == 400) {
-          return AuthError(AuthErrorKind.configMissing, e.toString());
+        if ((statusCode == 400 || statusCode == 409) &&
+            bodyCode == 'email_already_exists') {
+          return AuthError(AuthErrorKind.emailAlreadyRegistered, e.toString());
         }
+        return AuthError(AuthErrorKind.network, e.toString());
+
+      case 'resetPasswordConfirm':
+        if (statusCode == 400 || statusCode == 404) {
+          return AuthError(AuthErrorKind.resetCodeInvalid, e.toString());
+        }
+        return AuthError(AuthErrorKind.network, e.toString());
+
+      case 'verifyEmailConfirm':
+        if (statusCode == 400 || statusCode == 404) {
+          return AuthError(AuthErrorKind.verificationCodeInvalid, e.toString());
+        }
+        return AuthError(AuthErrorKind.network, e.toString());
+
+      case 'resetPasswordRequest':
+      case 'resendVerification':
         return AuthError(AuthErrorKind.network, e.toString());
 
       default:

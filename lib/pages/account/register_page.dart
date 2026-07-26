@@ -18,20 +18,8 @@ import '../../util/validator.dart';
 /// decides between `/verify-email-pending` and a "you can log in" toast back
 /// to `/login`.
 ///
-/// Error-kind mapping note (FL-D04 binding): the repository's
-/// `AuthError.fromDioException` for operation `'register'` does NOT surface a
-/// dedicated kind for 400 email-already-registered or 400 password-policy —
-/// every 400 maps to `configMissing` (when the body code is a Client-App /
-/// realm-capability code) and otherwise to `network`. So the Work §3
-/// "400 email-already-registered → `emailAlreadyRegistered`" and
-/// "400 password-policy → `passwordPolicyHint`" branches cannot be
-/// distinguished from `network` / `configMissing` at the UI layer with the
-/// FL-D02 contract as shipped. Per the binding ("read the actual FL-D02 code
-/// before assuming any specific kind"), we surface `emailAlreadyRegistered`
-/// for `network` (the most likely 400-branch bucket after configMissing),
-/// `passwordPolicyHint` is rendered from [validatePassword] inline (so a
-/// policy rejection is legible regardless of backend classification), and
-/// `rateLimited` / `configMissing` map directly.
+/// The backend's `email_already_exists` business code is classified separately
+/// from transport failures, so only that case receives the login/reset hint.
 class RegisterPage extends HookConsumerWidget {
   static const sName = 'register';
 
@@ -45,6 +33,7 @@ class RegisterPage extends HookConsumerWidget {
     final passwordController = useTextEditingController();
     final confirmController = useTextEditingController();
     final loading = useState<bool>(false);
+    final registrationEnabled = ref.watch(registrationEnabledProvider);
 
     String errorForKind(AuthErrorKind kind) {
       switch (kind) {
@@ -52,17 +41,17 @@ class RegisterPage extends HookConsumerWidget {
           return l10n.rateLimited;
         case AuthErrorKind.configMissing:
           return l10n.unexpectedError('config');
-        case AuthErrorKind.network:
-          // The FL-D02 contract collapses 400 email-already-registered and
-          // 400 password-policy (both non-configMissing 400s) into `network`.
-          // Email-already-registered is the more actionable of the two for the
-          // user; surface its hint. (See class doc for the deviation.)
+        case AuthErrorKind.emailAlreadyRegistered:
           return l10n.emailAlreadyRegistered;
+        case AuthErrorKind.network:
+          return l10n.unexpectedError('network');
         case AuthErrorKind.turnstileFailed:
           return l10n.turnstileFailed;
         case AuthErrorKind.invalidCredentials:
         case AuthErrorKind.accountNotActivated:
         case AuthErrorKind.emailNotRegistered:
+        case AuthErrorKind.verificationCodeInvalid:
+        case AuthErrorKind.resetCodeInvalid:
         case AuthErrorKind.consentRequired:
         case AuthErrorKind.sessionExpired:
           return l10n.unexpectedError(kind.name);
@@ -96,9 +85,7 @@ class RegisterPage extends HookConsumerWidget {
       } on AuthErrorException catch (e) {
         if (!context.mounted) return;
         final kind = e.error.kind;
-        if (kind == AuthErrorKind.network) {
-          // Email-already-registered hint carries login / forgot-password
-          // affordances per Work §3; the hint string covers both.
+        if (kind == AuthErrorKind.emailAlreadyRegistered) {
           SmartDialog.showToast(
             '${l10n.emailAlreadyRegistered} ${l10n.emailAlreadyRegisteredHint}',
           );
@@ -108,6 +95,46 @@ class RegisterPage extends HookConsumerWidget {
       } finally {
         if (context.mounted) loading.value = false;
       }
+    }
+
+    if (registrationEnabled.isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.registerTitle)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (registrationEnabled.value != true) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.registerTitle)),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(26),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  l10n.registrationDisabledTitle,
+                  key: const ValueKey('registrationDisabledTitle'),
+                  style: Theme.of(context).textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.registrationDisabledDescription,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  key: const ValueKey('registrationDisabledBackButton'),
+                  onPressed: () => context.go('/login'),
+                  child: Text(l10n.backToLogin),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     return Scaffold(

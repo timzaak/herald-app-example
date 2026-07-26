@@ -1,12 +1,23 @@
 class Settings {
-  // Herald runtime configuration (design §1.4 / §4.1).
-  // realmId / clientId / baseUrl are registered and configured ahead of time
-  // by ops inside the Herald realm; the App reads them from here. Real values
-  // are injected by ops config — replace the placeholders before release.
-  // TODO(ops): inject real Herald realm/client/baseUrl via build-time config.
-  static const String heraldBaseUrl = 'https://herald.example.com';
-  static const String heraldRealmId = '';
-  static const String heraldClientId = '';
+  // Inject with:
+  // --dart-define=HERALD_BASE_URL=https://...
+  // --dart-define=HERALD_REALM_ID=...
+  // --dart-define=HERALD_CLIENT_ID=...
+  static const String heraldBaseUrl = String.fromEnvironment(
+    'HERALD_BASE_URL',
+    defaultValue: 'https://auth.fornetcode.com',
+  );
+  static const String heraldRealmId = String.fromEnvironment(
+    'HERALD_REALM_ID',
+    defaultValue: 'admin',
+  );
+  static const String heraldClientId = String.fromEnvironment(
+    'HERALD_CLIENT_ID',
+    defaultValue: 'fornetcode-app',
+  );
+  static const String heraldClientAppUuid = String.fromEnvironment(
+    'HERALD_CLIENT_APP_UUID',
+  );
 
   // Token persistence keys (shared_preferences). Consumed by TokenStore and
   // the startup bootstrap.

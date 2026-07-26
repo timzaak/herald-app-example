@@ -20,6 +20,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../fakes/fake_herald_auth_repository.dart';
+import '../fakes/fake_account_security_service.dart';
 import '../fakes/fake_turnstile_service.dart';
 import '../helpers/pump_herald_app.dart';
 
@@ -27,12 +28,17 @@ void main() {
   // The agreements the consent page renders and replays.
   final agreements = <AgreementView>[
     const AgreementView(
+      agreementType: 'terms',
       id: 'terms-v1',
       title: 'Terms of Service',
       summary: 'summary',
       externalUrl: 'https://example.com/terms',
     ),
-    const AgreementView(id: 'privacy-v1', title: 'Privacy Policy'),
+    const AgreementView(
+      agreementType: 'privacy',
+      id: 'privacy-v1',
+      title: 'Privacy Policy',
+    ),
   ];
 
   // originalFlow for the password-replay path. The page reads email/password
@@ -47,6 +53,7 @@ void main() {
     ({
       ProviderContainer container,
       FakeHeraldAuthRepository repo,
+      FakeAccountSecurityService security,
       FakeTurnstileService turnstile,
     })
   >
@@ -89,11 +96,107 @@ void main() {
         'terms-v1',
         'privacy-v1',
       ]);
+      expect(replayed.agreements!.map((a) => a.agreementType), [
+        'terms',
+        'privacy',
+      ]);
       // Fresh Turnstile token taken on replay (single-use semantics).
       expect(replayed.turnstileToken, 'fresh-token');
       expect(harness.turnstile.obtainTokenCalls, 1);
     },
   );
+
+  testWidgets(
+    'Email OTP send consent replays send, then restores the OTP form',
+    (tester) async {
+      final harness = await pumpHeraldApp(
+        tester,
+        initialLocation: '/consent',
+        initialExtra: <String, dynamic>{
+          'agreements': agreements,
+          'originalFlow': const <String, dynamic>{
+            'kind': 'email-otp',
+            'stage': 'send',
+            'email': 'otp@example.com',
+          },
+        },
+      );
+      harness.repo.sendEmailOtpResult = FutureOrResult.value(
+        const SendEmailOtpResult.sent(expiresInSeconds: 45),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('consentAcceptButton')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(harness.repo.sendEmailOtpCalls, hasLength(1));
+      expect(harness.repo.loginWithEmailOtpCalls, isEmpty);
+      final replayed = harness.repo.sendEmailOtpCalls.single;
+      expect(replayed.email, 'otp@example.com');
+      expect(replayed.agreements!.first.agreementType, 'terms');
+      expect(
+        tester
+            .widget<TextFormField>(
+              find.byKey(const ValueKey('loginEmailField')),
+            )
+            .controller!
+            .text,
+        'otp@example.com',
+      );
+      expect(find.byKey(const ValueKey('loginCodeField')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 46));
+      await tester.pump();
+    },
+  );
+
+  testWidgets('TOTP consent replays the exact code that triggered consent', (
+    tester,
+  ) async {
+    final harness = await pumpHeraldApp(
+      tester,
+      initialLocation: '/consent',
+      initialExtra: <String, dynamic>{
+        'agreements': agreements,
+        'originalFlow': const <String, dynamic>{
+          'kind': 'totp',
+          'tempToken': 'temp-token',
+          'code': '654321',
+        },
+      },
+    );
+    harness.repo.verifyTotpResult = FutureOrResult.value(authSuccess());
+
+    await tester.tap(find.byKey(const ValueKey('consentAcceptButton')));
+    await tester.pumpAndSettle();
+
+    expect(harness.repo.verifyTotpCalls, hasLength(1));
+    expect(harness.repo.verifyTotpCalls.single.tempToken, 'temp-token');
+    expect(harness.repo.verifyTotpCalls.single.code, '654321');
+  });
+
+  testWidgets('Successful consent replay preserves the pre-login destination', (
+    tester,
+  ) async {
+    final harness = await pumpHeraldApp(
+      tester,
+      initialLocation: '/consent',
+      initialExtra: <String, dynamic>{
+        'agreements': agreements,
+        'originalFlow': const <String, dynamic>{
+          'kind': 'password',
+          'email': 'user@example.com',
+          'password': 'Password1',
+          'returnTo': '/my',
+        },
+      },
+    );
+    harness.repo.loginWithPasswordResult = FutureOrResult.value(authSuccess());
+
+    await tester.tap(find.byKey(const ValueKey('consentAcceptButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.logout), findsOneWidget);
+  });
 
   testWidgets(
     'Reject navigates to /login without replaying the originating flow',

@@ -1,14 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../account/password_page.dart';
-import '../account/password_type.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/providers.dart';
+import '../../providers/account_providers.dart';
+import '../../providers/auth_providers.dart';
+import '../account/change_password_page.dart';
+import '../billing/purchase_page.dart';
 
 class MyPage extends HookConsumerWidget {
   static const sName = 'my';
@@ -20,6 +22,7 @@ class MyPage extends HookConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     final packageInfoAsync = ref.watch(packageInfoProvider);
+    final overview = ref.watch(accountOverviewProvider);
     final version = packageInfoAsync.maybeWhen(
       data: (info) => info.version,
       orElse: () => '',
@@ -29,6 +32,7 @@ class MyPage extends HookConsumerWidget {
     // provider 不感知其变化，这里用本地 useState 持有副本，检查后手动刷新。
     final versionService = ref.read(versionServiceProvider);
     final hasNewVersion = useState<bool>(versionService.hasNewVersion);
+    final loggingOut = useState<bool>(false);
 
     Future<void> checkVersion() async {
       if (!kIsWeb) {
@@ -43,9 +47,13 @@ class MyPage extends HookConsumerWidget {
     }
 
     Future<void> logout(BuildContext context) async {
-      final l10n = AppLocalizations.of(context)!;
-      // TODO: 实现登出逻辑（例如清除本地登录态、调用后端登出接口）
-      SmartDialog.showToast(l10n.logout);
+      if (loggingOut.value) return;
+      loggingOut.value = true;
+      try {
+        await ref.read(authStateProvider.notifier).logout();
+      } finally {
+        if (context.mounted) loggingOut.value = false;
+      }
     }
 
     Future<void> deleteAccount(BuildContext context) async {
@@ -97,6 +105,60 @@ class MyPage extends HookConsumerWidget {
       appBar: AppBar(title: Text(l10n.myAccount)),
       body: ListView(
         children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Card(
+              child: overview.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (_, _) => ListTile(
+                  leading: const Icon(Icons.error_outline),
+                  title: Text(l10n.accountOverviewFailed),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () => ref.invalidate(accountOverviewProvider),
+                  ),
+                ),
+                data: (account) => Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        account.nickname?.isNotEmpty == true
+                            ? account.nickname!
+                            : account.email,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      if (account.nickname?.isNotEmpty == true) ...[
+                        const SizedBox(height: 4),
+                        Text(account.email),
+                      ],
+                      const SizedBox(height: 20),
+                      Text(l10n.pointsBalance),
+                      const SizedBox(height: 4),
+                      Text(
+                        account.points.toString(),
+                        key: const ValueKey('pointsBalance'),
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          ListTile(
+            key: const ValueKey('purchasePointsTile'),
+            leading: const Icon(Icons.shopping_cart_checkout),
+            title: Text(l10n.purchasePoints),
+            subtitle: Text(l10n.stripeCreemCheckout),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.pushNamed(PurchasePage.sName),
+          ),
+          const Divider(),
           if (!kIsWeb)
             ListTile(
               leading: const Icon(Icons.system_update),
@@ -138,20 +200,17 @@ class MyPage extends HookConsumerWidget {
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.lock_outline),
+            key: const ValueKey('changePasswordTile'),
+            leading: const Icon(Icons.password),
             title: Text(l10n.changePassword),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              GoRouter.of(context).pushNamed(
-                ChangePasswordPage.sName,
-                extra: ChangePasswordType.ResetPassword,
-              );
-            },
+            onTap: () => context.pushNamed(AccountChangePasswordPage.sName),
           ),
           ListTile(
             leading: const Icon(Icons.logout),
             title: Text(l10n.logout),
-            onTap: () => logout(context),
+            enabled: !loggingOut.value,
+            onTap: loggingOut.value ? null : () => logout(context),
           ),
           const Divider(),
           ListTile(

@@ -3,10 +3,8 @@
 // Pumps /reset-password-confirm; fills code + new password + confirm; taps
 // submit. Asserts:
 // - Success → toast + /login.
-// - AuthErrorException(network flavor) → stays on page + reset-code-invalid
-//   toast (FL-D04 binding: the FL-D02 contract collapses non-configMissing
-//   400s to `network`; the page maps both `network` and `configMissing` to
-//   the resetCodeInvalid message).
+// - AuthErrorException(resetCodeInvalid) → stays on page + reset-code-invalid
+//   toast.
 // - Password-policy 400 (configMissing flavor) → stays on page.
 // - Client-side password mismatch blocks submit (confirmResetPasswordCalls
 //   stays empty — the form validator rejects before the repository is hit).
@@ -67,7 +65,7 @@ void main() {
   });
 
   testWidgets(
-    'AuthErrorException(network flavor) stays on the page and shows the '
+    'AuthErrorException(resetCodeInvalid) stays on the page and shows the '
     'reset-code-invalid toast',
     (tester) async {
       // Seed the error BEFORE filling (the fake reads it on submit).
@@ -77,7 +75,7 @@ void main() {
         initialExtra: const <String, dynamic>{'email': 'user@example.com'},
       );
       harness.repo.confirmResetPasswordError = const AuthErrorException(
-        AuthError(AuthErrorKind.network),
+        AuthError(AuthErrorKind.resetCodeInvalid),
       );
 
       await tester.enterText(
@@ -117,8 +115,6 @@ void main() {
       initialLocation: '/reset-password-confirm',
       initialExtra: const <String, dynamic>{'email': 'user@example.com'},
     );
-    // The FL-D02 contract maps Client-App-disabled / realm-capability 400 to
-    // configMissing; the page also surfaces resetCodeInvalid for that bucket.
     harness.repo.confirmResetPasswordError = const AuthErrorException(
       AuthError(AuthErrorKind.configMissing),
     );

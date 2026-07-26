@@ -48,6 +48,16 @@ class _FakeTokenStore implements TokenStore {
   }
 }
 
+class _FailingTokenStore extends _FakeTokenStore {
+  @override
+  Future<void> save({
+    required String accessToken,
+    required String refreshToken,
+  }) {
+    throw StateError('storage unavailable');
+  }
+}
+
 /// Hand-rolled Dio adapter that returns scripted [ResponseBody]s in sequence,
 /// recording each requested path so tests can assert routing. No new test
 /// dependency (Rule 2 — http_mock_adapter not added).
@@ -57,6 +67,7 @@ class _ScriptedAdapter implements HttpClientAdapter {
 
   final List<ResponseBody> _responses;
   final List<String> requestedPaths = [];
+  final List<Object?> requestedBodies = [];
 
   @override
   Future<ResponseBody> fetch(
@@ -65,6 +76,7 @@ class _ScriptedAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     requestedPaths.add(options.path);
+    requestedBodies.add(options.data);
     if (_responses.isEmpty) {
       throw StateError('_ScriptedAdapter: no scripted response left');
     }
@@ -146,6 +158,42 @@ void main() {
     );
 
     test(
+      'storage failure becomes AuthFailure instead of hanging the UI',
+      () async {
+        // WHY: token persistence is part of login completion. If it fails after
+        // a 200 response, the repository must return a visible failure rather
+        // than leak an async exception and leave the submit button loading.
+        final adapter = _ScriptedAdapter(
+          () => [
+            _jsonBody(200, {
+              'accessToken': 'a1',
+              'refreshToken': 'r1',
+              'expiresIn': 3600,
+              'refreshExpiresIn': 86400,
+              'tokenType': 'Bearer',
+            }),
+          ],
+        );
+        final dio = Dio(BaseOptions(baseUrl: 'https://herald.test'))
+          ..httpClientAdapter = adapter;
+        final repo = HeraldAuthRepositoryImpl(
+          AuthApi(dio, standardSerializers),
+          _FailingTokenStore(),
+          realmId: 'realm-1',
+          clientId: 'client-1',
+          baseUrl: 'https://herald.test',
+        );
+
+        final result = await repo.loginWithPassword(
+          email: 'u@e.com',
+          password: 'pw',
+        );
+
+        expect(result, isA<AuthFailure>());
+      },
+    );
+
+    test(
       'requiresTotp branch → AuthRequiresTotp(tempToken, secondFactors)',
       () async {
         final adapter = _ScriptedAdapter(
@@ -210,6 +258,7 @@ void main() {
       final c = result as AuthConsentRequired;
       expect(c.agreements.length, 1);
       expect(c.agreements.single.id, 'v1');
+      expect(c.agreements.single.agreementType, 'terms');
       expect(c.agreements.single.title, 'Terms');
       expect(c.agreements.single.externalUrl, 'https://e');
     });
@@ -290,6 +339,7 @@ void main() {
       expect(result.sent, isTrue);
       expect(result.agreements, isNull);
       expect(result.error, isNull);
+      expect(result.expiresInSeconds, 300);
     });
 
     test('409 email_not_registered → emailNotRegistered', () async {
@@ -340,6 +390,7 @@ void main() {
         );
         expect(result.agreements, isNotNull);
         expect(result.agreements!.single.id, 'v2');
+        expect(result.agreements!.single.agreementType, 'privacy');
         expect(result.agreements!.single.title, 'Privacy');
       },
     );
@@ -437,6 +488,26 @@ void main() {
       expect(result, isA<AuthFailure>());
       expect((result as AuthFailure).error.kind, AuthErrorKind.turnstileFailed);
     });
+
+    test('401 invalid_code → verificationCodeInvalid', () async {
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(401, {'code': 'invalid_code'}),
+        ],
+      );
+      final (repo, _) = _buildRepo(adapter);
+
+      final result = await repo.loginWithEmailOtp(
+        email: 'u@e.com',
+        code: '123456',
+      );
+
+      expect(result, isA<AuthFailure>());
+      expect(
+        (result as AuthFailure).error.kind,
+        AuthErrorKind.verificationCodeInvalid,
+      );
+    });
   });
 
   group('HeraldAuthRepository.register', () {
@@ -465,6 +536,26 @@ void main() {
 
       expect(result.verificationRequired, isFalse);
     });
+
+    test('email_already_exists → emailAlreadyRegistered', () async {
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(409, {'code': 'email_already_exists'}),
+        ],
+      );
+      final (repo, _) = _buildRepo(adapter);
+
+      await expectLater(
+        repo.register(email: 'u@e.com', password: 'pw'),
+        throwsA(
+          isA<AuthErrorException>().having(
+            (e) => e.error.kind,
+            'kind',
+            AuthErrorKind.emailAlreadyRegistered,
+          ),
+        ),
+      );
+    });
   });
 
   group('HeraldAuthRepository.reset password flow', () {
@@ -490,6 +581,69 @@ void main() {
         ]);
       },
     );
+
+    test('400 confirm response → resetCodeInvalid', () async {
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(400, {'code': 'invalid_code'}),
+        ],
+      );
+      final (repo, _) = _buildRepo(adapter);
+
+      await expectLater(
+        repo.confirmResetPassword(code: 'CODE', newPass: 'newpass'),
+        throwsA(
+          isA<AuthErrorException>().having(
+            (e) => e.error.kind,
+            'kind',
+            AuthErrorKind.resetCodeInvalid,
+          ),
+        ),
+      );
+    });
+  });
+
+  group('HeraldAuthRepository.email verification', () {
+    test('resend then confirm calls both verification endpoints', () async {
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(200, {'message': 'sent'}),
+          _jsonBody(200, {}),
+        ],
+      );
+      final (repo, _) = _buildRepo(adapter);
+
+      await repo.resendVerification(
+        email: 'u@e.com',
+        turnstileToken: 'turnstile-token',
+      );
+      await repo.confirmEmailVerification(code: '123456');
+
+      expect(adapter.requestedPaths, [
+        '/api/auth/realm-1/verify_email/trigger',
+        '/api/auth/realm-1/verify_email/confirm/123456',
+      ]);
+    });
+
+    test('404 confirm response → verificationCodeInvalid', () async {
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(404, {'code': 'invalid_code'}),
+        ],
+      );
+      final (repo, _) = _buildRepo(adapter);
+
+      await expectLater(
+        repo.confirmEmailVerification(code: '123456'),
+        throwsA(
+          isA<AuthErrorException>().having(
+            (e) => e.error.kind,
+            'kind',
+            AuthErrorKind.verificationCodeInvalid,
+          ),
+        ),
+      );
+    });
   });
 
   group('HeraldAuthRepository.checkStatus', () {
@@ -557,6 +711,29 @@ void main() {
 
       expect(result, isA<AuthFailure>());
       expect((result as AuthFailure).error.kind, AuthErrorKind.sessionExpired);
+    });
+
+    test('backup-code verification uses backupCode and omits code', () async {
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(200, {
+            'accessToken': 'a4',
+            'refreshToken': 'r4',
+            'tokenType': 'Bearer',
+          }),
+        ],
+      );
+      final (repo, _) = _buildRepo(adapter);
+
+      final result = await repo.verifyTotp(
+        tempToken: 'tt',
+        backupCode: 'AB12CD34',
+      );
+
+      expect(result, isA<AuthSuccess>());
+      final body = adapter.requestedBodies.single as Map<String, dynamic>;
+      expect(body['backupCode'], 'AB12CD34');
+      expect(body.containsKey('code'), isFalse);
     });
   });
 

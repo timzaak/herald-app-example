@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -7,6 +8,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_providers.dart';
 import '../../services/auth/auth_error.dart';
+import '../../services/auth/auth_redirect.dart';
 import '../../services/auth/auth_result.dart';
 import '../../util/validator.dart';
 
@@ -14,8 +16,8 @@ import '../../util/validator.dart';
 ///
 /// Receives [tempToken] / [secondFactors] from `/login` (or, defensively,
 /// from `/consent` replay failures) via the route `extra` map. On submit:
-/// - [AuthSuccess] → navigate to the post-login destination (`/index` by
-///   default; a prior `returnTo` is preserved on `/login`, not here).
+/// - [AuthSuccess] → navigate to the preserved post-login destination
+///   (`/index` by default).
 /// - [AuthConsentRequired] → route to `/consent`, replaying the TOTP flow.
 /// - [AuthFailure] with [AuthErrorKind.sessionExpired] → tempToken expired /
 ///   locked; surface a toast and bounce to `/login`.
@@ -27,11 +29,13 @@ class TotpVerifyPage extends HookConsumerWidget {
 
   final String tempToken;
   final List<String> secondFactors;
+  final String? returnTo;
 
   const TotpVerifyPage({
     super.key,
     required this.tempToken,
     required this.secondFactors,
+    this.returnTo,
   });
 
   @override
@@ -40,6 +44,7 @@ class TotpVerifyPage extends HookConsumerWidget {
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final codeController = useTextEditingController();
     final loading = useState<bool>(false);
+    final useBackupCode = useState<bool>(false);
 
     String errorForKind(AuthErrorKind kind) {
       switch (kind) {
@@ -59,19 +64,35 @@ class TotpVerifyPage extends HookConsumerWidget {
       if (formKey.currentState?.validate() != true) return;
       loading.value = true;
       try {
+        final submittedCode = codeController.text.trim();
+        final backupCode = useBackupCode.value
+            ? submittedCode.toUpperCase()
+            : null;
         final result = await ref
             .read(authStateProvider.notifier)
-            .verifyTotp(tempToken: tempToken, code: codeController.text.trim());
+            .verifyTotp(
+              tempToken: tempToken,
+              code: useBackupCode.value ? null : submittedCode,
+              backupCode: backupCode,
+            );
         switch (result) {
           case AuthSuccess():
-            if (context.mounted) context.go('/index');
+            if (context.mounted) {
+              context.go(safeAuthDestination(returnTo));
+            }
           case AuthConsentRequired(:final agreements):
             if (context.mounted) {
               context.go(
                 '/consent',
                 extra: {
                   'agreements': agreements,
-                  'originalFlow': {'kind': 'totp', 'tempToken': tempToken},
+                  'originalFlow': {
+                    'kind': 'totp',
+                    'tempToken': tempToken,
+                    'code': useBackupCode.value ? null : submittedCode,
+                    'backupCode': backupCode,
+                    'returnTo': returnTo,
+                  },
                 },
               );
             }
@@ -107,19 +128,61 @@ class TotpVerifyPage extends HookConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    l10n.enterTotpCode,
+                    useBackupCode.value
+                        ? l10n.enterBackupCode
+                        : l10n.enterTotpCode,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     key: const ValueKey('totpCodeField'),
                     controller: codeController,
-                    keyboardType: TextInputType.number,
+                    keyboardType: useBackupCode.value
+                        ? TextInputType.text
+                        : TextInputType.number,
+                    textCapitalization: useBackupCode.value
+                        ? TextCapitalization.characters
+                        : TextCapitalization.none,
+                    inputFormatters: useBackupCode.value
+                        ? [
+                            FilteringTextInputFormatter.allow(
+                              RegExp('[a-zA-Z0-9]'),
+                            ),
+                            LengthLimitingTextInputFormatter(8),
+                            _UpperCaseTextFormatter(),
+                          ]
+                        : [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(6),
+                          ],
                     autofocus: true,
                     decoration: InputDecoration(
-                      hintText: l10n.enterVerificationCode,
+                      hintText: useBackupCode.value
+                          ? 'XXXXXXXX'
+                          : l10n.enterVerificationCode,
                     ),
-                    validator: validateVerificationCode,
+                    validator: useBackupCode.value
+                        ? (value) => value?.trim().length == 8
+                              ? null
+                              : l10n.invalidBackupCode
+                        : validateVerificationCode,
+                  ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      key: const ValueKey('totpCodeModeButton'),
+                      onPressed: loading.value
+                          ? null
+                          : () {
+                              codeController.clear();
+                              useBackupCode.value = !useBackupCode.value;
+                            },
+                      child: Text(
+                        useBackupCode.value
+                            ? l10n.useTotpCode
+                            : l10n.useBackupCode,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 32),
                   SizedBox(
@@ -157,5 +220,15 @@ class TotpVerifyPage extends HookConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+class _UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(text: newValue.text.toUpperCase());
   }
 }

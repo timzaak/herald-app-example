@@ -8,32 +8,64 @@ import 'package:go_router/go_router.dart';
 
 import '../../providers/auth_providers.dart';
 import '../../services/auth/auth_error.dart';
+import '../../services/auth/auth_redirect.dart';
 import '../../services/auth/auth_result.dart';
 import '../../util/validator.dart';
 import '../../l10n/app_localizations.dart';
 
+import 'legal_agreement_page.dart';
 import 'password_page.dart';
 import 'password_type.dart';
 
 class LoginPage extends HookConsumerWidget {
   static const sName = 'login';
 
-  const LoginPage({super.key});
+  final String initialEmail;
+  final bool initialEmailOtpSent;
+  final int? initialEmailOtpExpiresInSeconds;
+  final String? initialReturnTo;
+
+  const LoginPage({
+    super.key,
+    this.initialEmail = '',
+    this.initialEmailOtpSent = false,
+    this.initialEmailOtpExpiresInSeconds,
+    this.initialReturnTo,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final formKey = useMemoized(() => GlobalKey<FormState>());
-    final emailController = useTextEditingController();
+    final emailController = useTextEditingController(text: initialEmail);
     final codeController = useTextEditingController();
     final passwordController = useTextEditingController();
     final seconds = useState<int?>(null);
     final agreeDeal = useState<bool>(false);
     final loading = useState<bool>(false);
-    final tabController = useTabController(initialLength: 2, initialIndex: 0);
+    final emailOtpEnabled =
+        ref.watch(emailOtpEnabledProvider).value ?? initialEmailOtpSent;
+    final registrationEnabled =
+        ref.watch(registrationEnabledProvider).value == true;
+    final tabController = useTabController(
+      initialLength: 2,
+      initialIndex: initialEmailOtpSent ? 1 : 0,
+    );
     final timer = useRef<Timer?>(null);
 
     useEffect(() {
+      if (initialEmailOtpSent) {
+        seconds.value = initialEmailOtpExpiresInSeconds ?? 60;
+        timer.value = Timer.periodic(const Duration(seconds: 1), (_) {
+          if (seconds.value != null) {
+            seconds.value = seconds.value! - 1;
+            if (seconds.value == 0) {
+              timer.value?.cancel();
+              seconds.value = null;
+            }
+          }
+        });
+      }
       return () {
         timer.value?.cancel();
       };
@@ -48,6 +80,8 @@ class LoginPage extends HookConsumerWidget {
           return l10n.accountNotActivated;
         case AuthErrorKind.emailNotRegistered:
           return l10n.emailOtpNotRegistered;
+        case AuthErrorKind.verificationCodeInvalid:
+          return l10n.verificationCodeInvalid;
         case AuthErrorKind.consentRequired:
           return l10n.consentRequired;
         case AuthErrorKind.rateLimited:
@@ -60,16 +94,20 @@ class LoginPage extends HookConsumerWidget {
           return l10n.sessionExpired;
         case AuthErrorKind.network:
           return l10n.loginFailed(l10n.unexpectedError('network'));
+        case AuthErrorKind.emailAlreadyRegistered:
+        case AuthErrorKind.resetCodeInvalid:
+          return l10n.unexpectedError(kind.name);
       }
     }
 
     /// Reads the optional `returnTo` query param set by the router redirect
     /// guard (design §4.4.3). Null → fall back to `/index`.
     String? returnTo() =>
-        GoRouterState.of(context).uri.queryParameters['returnTo'];
+        GoRouterState.of(context).uri.queryParameters['returnTo'] ??
+        initialReturnTo;
 
-    void startCountdown() {
-      seconds.value = 60;
+    void startCountdown([int duration = 60]) {
+      seconds.value = duration;
       timer.value?.cancel();
       timer.value = Timer.periodic(const Duration(seconds: 1), (_) {
         if (seconds.value != null) {
@@ -101,7 +139,7 @@ class LoginPage extends HookConsumerWidget {
             .sendEmailOtp(email: email, turnstileToken: turnstileToken);
         if (!context.mounted) return;
         if (result.sent) {
-          startCountdown();
+          startCountdown(result.expiresInSeconds ?? 60);
           return;
         }
         if (result.agreements != null) {
@@ -110,7 +148,12 @@ class LoginPage extends HookConsumerWidget {
             '/consent',
             extra: {
               'agreements': result.agreements,
-              'originalFlow': {'kind': 'email-otp', 'email': email},
+              'originalFlow': {
+                'kind': 'email-otp',
+                'stage': 'send',
+                'email': email,
+                'returnTo': returnTo(),
+              },
             },
           );
           return;
@@ -138,11 +181,15 @@ class LoginPage extends HookConsumerWidget {
       if (!context.mounted) return;
       switch (result) {
         case AuthSuccess():
-          context.go(returnTo() ?? '/index');
+          context.go(safeAuthDestination(returnTo()));
         case AuthRequiresTotp(:final tempToken, :final secondFactors):
           context.go(
             '/totp-verify',
-            extra: {'tempToken': tempToken, 'secondFactors': secondFactors},
+            extra: {
+              'tempToken': tempToken,
+              'secondFactors': secondFactors,
+              'returnTo': returnTo(),
+            },
           );
         case AuthConsentRequired(:final agreements):
           context.go(
@@ -153,6 +200,7 @@ class LoginPage extends HookConsumerWidget {
                 'kind': 'password',
                 'email': email,
                 'password': password,
+                'returnTo': returnTo(),
               },
             },
           );
@@ -175,20 +223,30 @@ class LoginPage extends HookConsumerWidget {
       if (!context.mounted) return;
       switch (result) {
         case AuthSuccess():
-          context.go(returnTo() ?? '/index');
+          context.go(safeAuthDestination(returnTo()));
         case AuthRequiresTotp(:final tempToken, :final secondFactors):
-          // Not expected on the email-otp verify endpoint, but handle
-          // defensively per the item spec — route to /totp-verify.
+          // Not expected on the email-otp verify endpoint, but handled
+          // defensively — route to /totp-verify.
           context.go(
             '/totp-verify',
-            extra: {'tempToken': tempToken, 'secondFactors': secondFactors},
+            extra: {
+              'tempToken': tempToken,
+              'secondFactors': secondFactors,
+              'returnTo': returnTo(),
+            },
           );
         case AuthConsentRequired(:final agreements):
           context.go(
             '/consent',
             extra: {
               'agreements': agreements,
-              'originalFlow': {'kind': 'email-otp', 'email': email},
+              'originalFlow': {
+                'kind': 'email-otp',
+                'stage': 'verify',
+                'email': email,
+                'code': code,
+                'returnTo': returnTo(),
+              },
             },
           );
         case AuthFailure(:final error):
@@ -217,9 +275,13 @@ class LoginPage extends HookConsumerWidget {
       }
     }
 
-    void goPdf(String name, String path) {
-      // Navigator.of(context).pushNamed(PdfViewerPage.sName,
-      //     arguments: PdfViewerPageArg(url: '???', name: name));
+    void openAgreement(String title, String agreementType) {
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              LegalAgreementPage(agreementType: agreementType, title: title),
+        ),
+      );
     }
 
     return Scaffold(
@@ -242,13 +304,14 @@ class LoginPage extends HookConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 32),
-                    TabBar(
-                      controller: tabController,
-                      tabs: [
-                        Tab(text: l10n.passwordLogin),
-                        Tab(text: l10n.verificationCodeLogin),
-                      ],
-                    ),
+                    if (emailOtpEnabled)
+                      TabBar(
+                        controller: tabController,
+                        tabs: [
+                          Tab(text: l10n.passwordLogin),
+                          Tab(text: l10n.verificationCodeLogin),
+                        ],
+                      ),
                     const SizedBox(height: 16),
                     TextFormField(
                       key: const ValueKey('loginEmailField'),
@@ -264,6 +327,9 @@ class LoginPage extends HookConsumerWidget {
                       height: 60,
                       child: TabBarView(
                         controller: tabController,
+                        physics: emailOtpEnabled
+                            ? null
+                            : const NeverScrollableScrollPhysics(),
                         children: [
                           TextFormField(
                             key: const ValueKey('loginPasswordField'),
@@ -338,8 +404,10 @@ class LoginPage extends HookConsumerWidget {
                             TextSpan(
                               text: l10n.userAgreement,
                               recognizer: TapGestureRecognizer()
-                                ..onTap = () =>
-                                    goPdf(l10n.userAgreement, 'user_deal.pdf'),
+                                ..onTap = () => openAgreement(
+                                  l10n.userAgreement,
+                                  'terms_of_service',
+                                ),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -348,9 +416,9 @@ class LoginPage extends HookConsumerWidget {
                             TextSpan(
                               text: l10n.privacyPolicy,
                               recognizer: TapGestureRecognizer()
-                                ..onTap = () => goPdf(
+                                ..onTap = () => openAgreement(
                                   l10n.privacyPolicy,
-                                  'privacy_protect.pdf',
+                                  'privacy_policy',
                                 ),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
@@ -382,6 +450,18 @@ class LoginPage extends HookConsumerWidget {
                         ),
                       ),
                     ),
+                    if (registrationEnabled) ...[
+                      const SizedBox(height: 12),
+                      Center(
+                        child: TextButton(
+                          key: const ValueKey('loginRegisterButton'),
+                          onPressed: loading.value
+                              ? null
+                              : () => context.go('/register'),
+                          child: Text(l10n.register),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 30),
                   ],
                 ),

@@ -36,6 +36,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod/src/internals.dart' show Override;
 
 import '../fakes/fake_herald_auth_repository.dart';
+import '../fakes/fake_account_security_service.dart';
 import '../fakes/fake_turnstile_service.dart';
 
 /// Pumps the herald app with a fresh container hosting the real route table.
@@ -51,6 +52,7 @@ Future<
   ({
     ProviderContainer container,
     FakeHeraldAuthRepository repo,
+    FakeAccountSecurityService security,
     FakeTurnstileService turnstile,
   })
 >
@@ -59,13 +61,21 @@ pumpHeraldApp(
   List<Override> overrides = const [],
   String initialLocation = '/login',
   Object? initialExtra,
+  bool emailOtpEnabled = true,
+  bool registrationEnabled = true,
 }) async {
   final repo = FakeHeraldAuthRepository();
+  final security = FakeAccountSecurityService();
   final turnstile = FakeTurnstileService();
   final container = ProviderContainer(
     overrides: [
       heraldAuthRepositoryProvider.overrideWithValue(repo),
+      accountSecurityServiceProvider.overrideWithValue(security),
       turnstileServiceProvider.overrideWithValue(turnstile),
+      emailOtpEnabledProvider.overrideWith((ref) async => emailOtpEnabled),
+      registrationEnabledProvider.overrideWith(
+        (ref) async => registrationEnabled,
+      ),
       ...overrides,
     ],
   );
@@ -84,7 +94,12 @@ pumpHeraldApp(
   // One pump so the first frame + router resolve. Tests pump further as
   // needed (e.g. after tapping).
   await tester.pump();
-  return (container: container, repo: repo, turnstile: turnstile);
+  return (
+    container: container,
+    repo: repo,
+    security: security,
+    turnstile: turnstile,
+  );
 }
 
 /// Inner widget hosting the router. The redirect guard is rebound to read

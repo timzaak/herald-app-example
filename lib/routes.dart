@@ -1,5 +1,6 @@
 import 'main.dart';
 import 'pages/account/consent_gate_page.dart';
+import 'pages/account/change_password_page.dart';
 import 'pages/account/login_page.dart';
 import 'pages/account/password_page.dart';
 import 'pages/account/register_page.dart';
@@ -7,6 +8,7 @@ import 'pages/account/reset_password_confirm_page.dart';
 import 'pages/account/totp_verify_page.dart';
 import 'pages/account/verify_email_pending_page.dart';
 import 'pages/index_tab/my_page.dart';
+import 'pages/billing/purchase_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -148,10 +150,31 @@ late final GoRouter appRouter = GoRouter(
       ],
     ),
     GoRoute(
+      path: '/change-password',
+      name: AccountChangePasswordPage.sName,
+      builder: (BuildContext context, GoRouterState state) {
+        return const AccountChangePasswordPage();
+      },
+    ),
+    GoRoute(
+      path: '/purchase',
+      name: PurchasePage.sName,
+      builder: (BuildContext context, GoRouterState state) {
+        return const PurchasePage();
+      },
+    ),
+    GoRoute(
       path: '/login',
       name: LoginPage.sName, // Assuming LoginPage has sName
       builder: (BuildContext context, GoRouterState state) {
-        return const LoginPage();
+        final extra = state.extra as Map<String, dynamic>?;
+        return LoginPage(
+          initialEmail: (extra?['email'] as String?) ?? '',
+          initialEmailOtpSent: extra?['emailOtpSent'] == true,
+          initialEmailOtpExpiresInSeconds:
+              extra?['emailOtpExpiresInSeconds'] as int?,
+          initialReturnTo: extra?['returnTo'] as String?,
+        );
       },
     ),
     GoRoute(
@@ -169,6 +192,7 @@ late final GoRouter appRouter = GoRouter(
         return TotpVerifyPage(
           tempToken: tempToken,
           secondFactors: secondFactors,
+          returnTo: extra?['returnTo'] as String?,
         );
       },
     ),

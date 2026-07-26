@@ -16,13 +16,28 @@
 import 'dart:async';
 
 import 'package:app/l10n/app_localizations.dart';
+import 'package:app/providers/auth_providers.dart';
 import 'package:app/services/auth/auth_error.dart';
 import 'package:app/services/auth/auth_result.dart';
+import 'package:app/services/auth/legal_agreement_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../fakes/fake_herald_auth_repository.dart';
 import '../helpers/pump_herald_app.dart';
+
+class _FakeLegalAgreementService implements LegalAgreementService {
+  final requestedTypes = <String>[];
+
+  @override
+  Future<LegalAgreement> getAgreement({
+    required String agreementType,
+    required String locale,
+  }) async {
+    requestedTypes.add(agreementType);
+    return LegalAgreement(content: 'content:$agreementType');
+  }
+}
 
 void main() {
   // SmartDialog's toast uses an overlay; ensure its bindings are ready. The
@@ -34,6 +49,67 @@ void main() {
   // to assert toast text it pumps enough frames for the toast to render.
 
   const email = 'user@example.com';
+
+  testWidgets('email OTP tab is hidden when the realm disables it', (
+    tester,
+  ) async {
+    await pumpHeraldApp(tester, emailOtpEnabled: false);
+    await tester.pump();
+
+    expect(find.text('Verification Code Login'), findsNothing);
+    expect(find.byKey(const ValueKey('loginPasswordField')), findsOneWidget);
+    expect(find.byKey(const ValueKey('loginCodeField')), findsNothing);
+  });
+
+  testWidgets('registration entry follows public realm configuration', (
+    tester,
+  ) async {
+    await pumpHeraldApp(tester, registrationEnabled: false);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('loginRegisterButton')), findsNothing);
+
+    await pumpHeraldApp(tester, registrationEnabled: true);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('loginRegisterButton')), findsOneWidget);
+  });
+
+  testWidgets('registration entry navigates to the registration form', (
+    tester,
+  ) async {
+    await pumpHeraldApp(tester, registrationEnabled: true);
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('loginRegisterButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('registerSubmitButton')), findsOneWidget);
+  });
+
+  testWidgets('agreement labels open the matching public legal agreement', (
+    tester,
+  ) async {
+    final service = _FakeLegalAgreementService();
+    await pumpHeraldApp(
+      tester,
+      overrides: [legalAgreementServiceProvider.overrideWithValue(service)],
+    );
+    await tester.pump();
+
+    await tester.tapOnText(find.textRange.ofSubstring('User Agreement'));
+    await tester.pumpAndSettle();
+
+    expect(service.requestedTypes, ['terms_of_service']);
+    expect(find.text('content:terms_of_service'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tapOnText(find.textRange.ofSubstring('Privacy Policy'));
+    await tester.pumpAndSettle();
+
+    expect(service.requestedTypes, ['terms_of_service', 'privacy_policy']);
+    expect(find.text('content:privacy_policy'), findsOneWidget);
+  });
+
   // validatePassword requires 8-24 chars with upper + lower + digit.
   const password = 'Password1';
 
@@ -95,6 +171,7 @@ void main() {
     harness.repo.loginWithPasswordResult = FutureOrResult.value(
       AuthConsentRequired(const [
         AgreementView(
+          agreementType: 'terms',
           id: 'terms-v1',
           title: 'Terms',
           summary: 'summary',
@@ -170,7 +247,7 @@ void main() {
       final harness = await pumpHeraldApp(tester);
       harness.repo.sendEmailOtpResult = FutureOrResult.value(
         SendEmailOtpResult.consent(const [
-          AgreementView(id: 'terms-v1', title: 'Terms'),
+          AgreementView(agreementType: 'terms', id: 'terms-v1', title: 'Terms'),
         ]),
       );
 

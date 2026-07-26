@@ -44,6 +44,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get changePassword => '修改密码';
 
   @override
+  String get currentPassword => '当前密码';
+
+  @override
+  String get wrongCurrentPassword => '当前密码不正确。';
+
+  @override
+  String get reauthExpired => '验证已过期，请重试。';
+
+  @override
+  String get passwordChangedSuccess => '密码修改成功。';
+
+  @override
   String get resetPassword => '重置密码';
 
   @override
@@ -166,6 +178,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enterTotpCode => '请输入验证器应用中的 6 位动态码';
 
   @override
+  String get enterBackupCode => '请输入一个 8 位备用恢复码';
+
+  @override
+  String get useBackupCode => '改用备用恢复码';
+
+  @override
+  String get useTotpCode => '改用验证器动态码';
+
+  @override
+  String get invalidBackupCode => '请输入 8 位备用恢复码';
+
+  @override
   String get totpExpired => '验证码已过期或会话被锁定，请重新登录。';
 
   @override
@@ -211,6 +235,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get registerTitle => '创建账号';
 
   @override
+  String get registrationDisabledTitle => '注册已关闭';
+
+  @override
+  String get registrationDisabledDescription => '当前域暂不接受新账号注册。';
+
+  @override
   String get enterConfirmPassword => '请确认密码';
 
   @override
@@ -229,6 +259,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get emailAlreadyRegistered => '该邮箱已被注册。';
 
   @override
+  String get verificationCodeInvalid => '验证码无效或已过期。';
+
+  @override
   String get emailAlreadyRegisteredHint => '请尝试登录或找回密码。';
 
   @override
@@ -242,6 +275,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get verificationEmailSent => '验证邮件已发送。';
+
+  @override
+  String get emailVerificationSuccess => '邮箱验证成功。';
 
   @override
   String get resetPasswordConfirmTitle => '设置新密码';
@@ -263,6 +299,69 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get backToLogin => '返回登录';
+
+  @override
+  String get pointsBalance => '积分余额';
+
+  @override
+  String get accountOverviewFailed => '无法加载账号信息。';
+
+  @override
+  String get purchasePoints => '购买积分';
+
+  @override
+  String get stripeCreemCheckout => '通过 Stripe 或 Creem 安全结账';
+
+  @override
+  String get billingNotConfigured =>
+      '购买功能尚未配置，请为当前构建设置 HERALD_CLIENT_APP_UUID。';
+
+  @override
+  String get purchaseOptionsFailed => '无法加载购买选项。';
+
+  @override
+  String get retry => '重试';
+
+  @override
+  String get noPurchaseOptions => '暂无可购买的选项。';
+
+  @override
+  String pointsAmount(Object points) {
+    return '$points 积分';
+  }
+
+  @override
+  String get priceUnavailable => '价格暂不可用';
+
+  @override
+  String get alreadyOwned => '已拥有';
+
+  @override
+  String get openingCheckout => '正在打开结账页面……';
+
+  @override
+  String get buyNow => '立即购买';
+
+  @override
+  String get waitingForPayment => '等待付款确认';
+
+  @override
+  String get paymentWebhookHint => '仅在服务端确认支付平台 Webhook 后才会发放积分。';
+
+  @override
+  String get checkPayment => '检查状态';
+
+  @override
+  String get paymentSucceeded => '付款已确认，积分已更新。';
+
+  @override
+  String get paymentFailed => '付款未完成。';
+
+  @override
+  String get paymentStatusFailed => '暂时无法查询付款状态，请重试。';
+
+  @override
+  String get purchaseFailed => '无法打开结账页面，请重试。';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -303,6 +402,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get changePassword => '修改密碼';
+
+  @override
+  String get currentPassword => '目前密碼';
+
+  @override
+  String get wrongCurrentPassword => '目前密碼不正確。';
+
+  @override
+  String get reauthExpired => '驗證已過期，請重試。';
+
+  @override
+  String get passwordChangedSuccess => '密碼修改成功。';
 
   @override
   String get resetPassword => '重設密碼';
@@ -427,6 +538,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get enterTotpCode => '請輸入驗證器應用中的 6 位動態碼';
 
   @override
+  String get enterBackupCode => '請輸入一個 8 位備用恢復碼';
+
+  @override
+  String get useBackupCode => '改用備用恢復碼';
+
+  @override
+  String get useTotpCode => '改用驗證器動態碼';
+
+  @override
+  String get invalidBackupCode => '請輸入 8 位備用恢復碼';
+
+  @override
   String get totpExpired => '驗證碼已過期或工作階段已被鎖定，請重新登入。';
 
   @override
@@ -472,6 +595,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get registerTitle => '建立帳號';
 
   @override
+  String get registrationDisabledTitle => '註冊已關閉';
+
+  @override
+  String get registrationDisabledDescription => '目前領域暫不接受新帳號註冊。';
+
+  @override
   String get enterConfirmPassword => '請確認密碼';
 
   @override
@@ -490,6 +619,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get emailAlreadyRegistered => '此電子郵件已被註冊。';
 
   @override
+  String get verificationCodeInvalid => '驗證碼無效或已過期。';
+
+  @override
   String get emailAlreadyRegisteredHint => '請嘗試登入或找回密碼。';
 
   @override
@@ -503,6 +635,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get verificationEmailSent => '驗證郵件已發送。';
+
+  @override
+  String get emailVerificationSuccess => '電子郵件驗證成功。';
 
   @override
   String get resetPasswordConfirmTitle => '設定新密碼';
@@ -524,4 +659,67 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get backToLogin => '返回登入';
+
+  @override
+  String get pointsBalance => '積分餘額';
+
+  @override
+  String get accountOverviewFailed => '無法載入帳號資訊。';
+
+  @override
+  String get purchasePoints => '購買積分';
+
+  @override
+  String get stripeCreemCheckout => '透過 Stripe 或 Creem 安全結帳';
+
+  @override
+  String get billingNotConfigured =>
+      '購買功能尚未設定，請為目前建置設定 HERALD_CLIENT_APP_UUID。';
+
+  @override
+  String get purchaseOptionsFailed => '無法載入購買選項。';
+
+  @override
+  String get retry => '重試';
+
+  @override
+  String get noPurchaseOptions => '暫無可購買的選項。';
+
+  @override
+  String pointsAmount(Object points) {
+    return '$points 積分';
+  }
+
+  @override
+  String get priceUnavailable => '價格暫不可用';
+
+  @override
+  String get alreadyOwned => '已擁有';
+
+  @override
+  String get openingCheckout => '正在開啟結帳頁面……';
+
+  @override
+  String get buyNow => '立即購買';
+
+  @override
+  String get waitingForPayment => '等待付款確認';
+
+  @override
+  String get paymentWebhookHint => '僅在伺服器確認支付平台 Webhook 後才會發放積分。';
+
+  @override
+  String get checkPayment => '檢查狀態';
+
+  @override
+  String get paymentSucceeded => '付款已確認，積分已更新。';
+
+  @override
+  String get paymentFailed => '付款未完成。';
+
+  @override
+  String get paymentStatusFailed => '暫時無法查詢付款狀態，請重試。';
+
+  @override
+  String get purchaseFailed => '無法開啟結帳頁面，請重試。';
 }

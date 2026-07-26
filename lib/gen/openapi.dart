@@ -16,10 +16,12 @@ import 'package:openapi_generator_annotations/openapi_generator_annotations.dart
   // Broken $ref are caught by tool/filter_spec.sh recursion, so skipping
   // validation here only suppresses the 3.1 license false-positive.
   skipSpecValidation: true,
-  additionalProperties: DioProperties(
+  // DioProperties in openapi_generator_annotations 7.0.0 does not expose
+  // legacyDiscriminatorBehavior. The base properties type does, and no
+  // Dio-specific options are needed here.
+  additionalProperties: AdditionalProperties(
     pubName: 'api_client',
     pubAuthor: 'ai-agent-app',
-    pubLibrary: 'api_client',
     // Use spec-compliant polymorphic discriminator behavior.
     legacyDiscriminatorBehavior: false,
   ),

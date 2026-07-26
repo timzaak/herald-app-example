@@ -44,7 +44,12 @@ abstract class HeraldAuthRepository {
     String? turnstileToken,
   });
 
-  Future<void> resendVerification({required String email});
+  Future<void> resendVerification({
+    required String email,
+    String? turnstileToken,
+  });
+
+  Future<void> confirmEmailVerification({required String code});
 
   Future<void> requestResetPassword({
     required String email,
@@ -59,7 +64,8 @@ abstract class HeraldAuthRepository {
 
   Future<AuthResult> verifyTotp({
     required String tempToken,
-    required String code,
+    String? code,
+    String? backupCode,
     List<AuthConsentAgreement>? agreements,
   });
 
@@ -114,13 +120,15 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
           if (agreements != null) b.agreements.replace(agreements);
         }),
       );
-      return _parseBranch(response.data, operation: 'login');
+      return await _parseBranch(response.data, operation: 'login');
     } on Object catch (e) {
       // The direct-success branch returns BrowserTokenResponse, which the
       // generator cannot deserialize into LoginResponse — surfacing as a
       // DioException wrapping a 200 response. Recover the raw body here.
       final recovered = _recover200(e);
-      if (recovered != null) return _parseBranch(recovered, operation: 'login');
+      if (recovered != null) {
+        return _parseRecovered(recovered, operation: 'login');
+      }
       return AuthFailure(_asAuthError(e, 'login'));
     }
   }
@@ -135,7 +143,7 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
       return const SendEmailOtpResult.failure(AuthError.configMissing);
     }
     try {
-      await _authApi.send(
+      final response = await _authApi.send(
         realmId: _realmId,
         emailOtpSendRequest: EmailOtpSendRequest((b) {
           b
@@ -145,7 +153,9 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
           if (agreements != null) b.agreements.replace(agreements);
         }),
       );
-      return const SendEmailOtpResult.sent();
+      return SendEmailOtpResult.sent(
+        expiresInSeconds: response.data?.expiresInSeconds,
+      );
     } on Object catch (e) {
       final dioError = e is DioException ? e : null;
       final statusCode = dioError?.response?.statusCode;
@@ -181,14 +191,14 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
           if (agreements != null) b.agreements.replace(agreements);
         }),
       );
-      return _parseBranch(response.data, operation: 'emailOtpVerify');
+      return await _parseBranch(response.data, operation: 'emailOtpVerify');
     } on Object catch (e) {
       // verify() is typed as Response<BrowserTokenResponse>; the inline
       // consent-gate JSON {message, consentRequired, agreements} would
       // fail deserialization — recover the raw 200 body here.
       final recovered = _recover200(e);
       if (recovered != null) {
-        return _parseBranch(recovered, operation: 'emailOtpVerify');
+        return _parseRecovered(recovered, operation: 'emailOtpVerify');
       }
       return AuthFailure(_asAuthError(e, 'emailOtpVerify'));
     }
@@ -224,7 +234,10 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
   }
 
   @override
-  Future<void> resendVerification({required String email}) async {
+  Future<void> resendVerification({
+    required String email,
+    String? turnstileToken,
+  }) async {
     if (_isConfigMissing()) {
       throw const AuthErrorException(AuthError.configMissing);
     }
@@ -234,11 +247,27 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
         verifyEmailTriggerRequest: VerifyEmailTriggerRequest(
           (b) => b
             ..clientId = _clientId
-            ..email = email,
+            ..email = email
+            ..turnstileToken = turnstileToken,
         ),
       );
     } on Object catch (e) {
       throw AuthErrorException(_asAuthError(e, 'resendVerification'));
+    }
+  }
+
+  @override
+  Future<void> confirmEmailVerification({required String code}) async {
+    if (_isConfigMissing()) {
+      throw const AuthErrorException(AuthError.configMissing);
+    }
+    try {
+      await _authApi.verifyEmailConfirm(
+        realmId: _realmId,
+        emailVerificationCode: code,
+      );
+    } on Object catch (e) {
+      throw AuthErrorException(_asAuthError(e, 'verifyEmailConfirm'));
     }
   }
 
@@ -292,7 +321,8 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
   @override
   Future<AuthResult> verifyTotp({
     required String tempToken,
-    required String code,
+    String? code,
+    String? backupCode,
     List<AuthConsentAgreement>? agreements,
   }) async {
     if (_isConfigMissing()) {
@@ -302,19 +332,21 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
       final response = await _authApi.handleVerifyTotp(
         realmId: _realmId,
         verifyTotpRequest: VerifyTotpRequest((b) {
-          b
-            ..tempToken = tempToken
-            ..code = code;
+          b.tempToken = tempToken;
+          if (code != null) b.code = code;
+          if (backupCode != null) b.backupCode = backupCode;
           if (agreements != null) b.agreements.replace(agreements);
         }),
       );
-      return _parseBranch(response.data, operation: 'totp');
+      return await _parseBranch(response.data, operation: 'totp');
     } on Object catch (e) {
       // handleVerifyTotp is typed as Response<VerifyTotpResponse>; the
       // direct-success BrowserTokenResponse branch would fail deserialization
       // — recover the raw 200 body here.
       final recovered = _recover200(e);
-      if (recovered != null) return _parseBranch(recovered, operation: 'totp');
+      if (recovered != null) {
+        return _parseRecovered(recovered, operation: 'totp');
+      }
       return AuthFailure(_asAuthError(e, 'totp'));
     }
   }
@@ -444,6 +476,17 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
     );
   }
 
+  Future<AuthResult> _parseRecovered(
+    Map<String, dynamic> data, {
+    required String operation,
+  }) async {
+    try {
+      return await _parseBranch(data, operation: operation);
+    } on Object catch (error) {
+      return AuthFailure(_asAuthError(error, operation));
+    }
+  }
+
   /// Maps the generated agreement summaries (Herald's consent branch —
   /// `BuiltList<LegalAgreementSummary>?` on LoginResponse / VerifyTotpResponse;
   /// accepted as `Iterable?` so this file does not import built_collection)
@@ -455,6 +498,7 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
     return summaries
         .map(
           (s) => AgreementView(
+            agreementType: s.agreementType,
             id: s.versionId,
             title: (s.title?.isNotEmpty ?? false) ? s.title! : s.versionId,
             summary: s.summary,
@@ -579,8 +623,11 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
   static AgreementView? _toAgreementView(Map raw) {
     final id = raw['versionId'] ?? raw['version_id'] ?? raw['agreementType'];
     if (id is! String || id.isEmpty) return null;
+    final agreementType = raw['agreementType'] ?? raw['agreement_type'];
+    if (agreementType is! String || agreementType.isEmpty) return null;
     final title = raw['title'];
     return AgreementView(
+      agreementType: agreementType,
       id: id,
       title: title is String && title.isNotEmpty ? title : id,
       summary: _asString(raw['summary']),

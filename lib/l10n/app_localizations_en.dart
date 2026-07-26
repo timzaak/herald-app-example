@@ -44,6 +44,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get changePassword => 'Change Password';
 
   @override
+  String get currentPassword => 'Current password';
+
+  @override
+  String get wrongCurrentPassword => 'The current password is incorrect.';
+
+  @override
+  String get reauthExpired => 'Verification expired. Please try again.';
+
+  @override
+  String get passwordChangedSuccess => 'Password changed successfully.';
+
+  @override
   String get resetPassword => 'Reset Password';
 
   @override
@@ -171,6 +183,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enter the 6-digit code from your authenticator app';
 
   @override
+  String get enterBackupCode =>
+      'Enter one of your 8-character backup recovery codes';
+
+  @override
+  String get useBackupCode => 'Use a backup code instead';
+
+  @override
+  String get useTotpCode => 'Use authenticator code instead';
+
+  @override
+  String get invalidBackupCode => 'Enter an 8-character backup code';
+
+  @override
   String get totpExpired =>
       'The verification code has expired or the session was locked. Please log in again.';
 
@@ -219,6 +244,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get registerTitle => 'Create Account';
 
   @override
+  String get registrationDisabledTitle => 'Registration is disabled';
+
+  @override
+  String get registrationDisabledDescription =>
+      'This realm is not accepting new account registrations.';
+
+  @override
   String get enterConfirmPassword => 'Please confirm password';
 
   @override
@@ -239,6 +271,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emailAlreadyRegistered => 'This email is already registered.';
 
   @override
+  String get verificationCodeInvalid =>
+      'The verification code is invalid or expired.';
+
+  @override
   String get emailAlreadyRegisteredHint =>
       'Try logging in or reset your password.';
 
@@ -254,6 +290,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get verificationEmailSent => 'Verification email sent.';
+
+  @override
+  String get emailVerificationSuccess => 'Email verified successfully.';
 
   @override
   String get resetPasswordConfirmTitle => 'Set a New Password';
@@ -276,4 +315,69 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backToLogin => 'Back to Login';
+
+  @override
+  String get pointsBalance => 'Points balance';
+
+  @override
+  String get accountOverviewFailed => 'Could not load account information.';
+
+  @override
+  String get purchasePoints => 'Buy points';
+
+  @override
+  String get stripeCreemCheckout => 'Secure checkout with Stripe or Creem';
+
+  @override
+  String get billingNotConfigured =>
+      'Purchases are not configured. Set HERALD_CLIENT_APP_UUID for this build.';
+
+  @override
+  String get purchaseOptionsFailed => 'Could not load purchase options.';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get noPurchaseOptions => 'No purchase options are available.';
+
+  @override
+  String pointsAmount(Object points) {
+    return '$points points';
+  }
+
+  @override
+  String get priceUnavailable => 'Price unavailable';
+
+  @override
+  String get alreadyOwned => 'Already owned';
+
+  @override
+  String get openingCheckout => 'Opening checkout...';
+
+  @override
+  String get buyNow => 'Buy now';
+
+  @override
+  String get waitingForPayment => 'Waiting for payment confirmation';
+
+  @override
+  String get paymentWebhookHint =>
+      'Points are credited only after the server confirms the provider webhook.';
+
+  @override
+  String get checkPayment => 'Check status';
+
+  @override
+  String get paymentSucceeded => 'Payment confirmed. Your points were updated.';
+
+  @override
+  String get paymentFailed => 'Payment was not completed.';
+
+  @override
+  String get paymentStatusFailed =>
+      'Could not check payment status. Please try again.';
+
+  @override
+  String get purchaseFailed => 'Could not open checkout. Please try again.';
 }

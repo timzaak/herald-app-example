@@ -105,7 +105,7 @@ void main() {
         initialLocation: '/consent',
         initialExtra: <String, dynamic>{
           'agreements': <AgreementView>[
-            const AgreementView(id: 'a', title: 'A'),
+            const AgreementView(agreementType: 'terms', id: 'a', title: 'A'),
           ],
           'originalFlow': <String, dynamic>{'kind': 'password'},
         },
@@ -203,7 +203,9 @@ void main() {
       // refreshListenable the user would be stuck on a protected page with no
       // valid session until they tapped somewhere.
       final harness = await pumpHeraldApp(tester, initialLocation: '/index');
-      harness.container.read(authStateProvider.notifier).seedAuthenticated(true);
+      harness.container
+          .read(authStateProvider.notifier)
+          .seedAuthenticated(true);
       await tester.pumpAndSettle();
 
       // Authenticated on a protected route — index renders.
@@ -211,9 +213,7 @@ void main() {
       expect(find.byKey(const ValueKey('loginSubmitButton')), findsNothing);
 
       // Simulate the interceptor's onSessionEnd: refresh failed, session ended.
-      harness.container
-          .read(authStateProvider.notifier)
-          .markUnauthenticated();
+      harness.container.read(authStateProvider.notifier).markUnauthenticated();
       await tester.pumpAndSettle();
 
       // The redirect re-evaluated on the state flip alone — bounced to /login.

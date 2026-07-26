@@ -4,14 +4,12 @@
 // - RegisterResult(verificationRequired: true) → /verify-email-pending with
 //   extra.email forwarded.
 // - RegisterResult(false) → toast + /login.
-// - AuthErrorException(emailAlreadyRegistered/network flavor) → toast + stays.
+// - AuthErrorException(emailAlreadyRegistered) → toast + stays.
 // - Loading disables the submit button.
 //
 // Repository contract honored (FL-D02 binding): `register` THROWS
 // AuthErrorException on failure; it does NOT return an AuthFailure. The fake
-// surfaces this via `registerError`. Per the FL-D04 deviation note in the
-// page, an email-already-registered 400 surfaces as AuthErrorKind.network at
-// the UI layer (the FL-D02 contract collapses non-configMissing 400s there).
+// surfaces this via `registerError`.
 import 'dart:async';
 
 import 'package:app/l10n/app_localizations.dart';
@@ -44,6 +42,24 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('registerSubmitButton')));
     await tester.pump();
   }
+
+  testWidgets('disabled registration fails closed on direct navigation', (
+    tester,
+  ) async {
+    final harness = await pumpHeraldApp(
+      tester,
+      initialLocation: '/register',
+      registrationEnabled: false,
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('registrationDisabledTitle')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('registerSubmitButton')), findsNothing);
+    expect(harness.repo.registerCalls, isEmpty);
+  });
 
   testWidgets('RegisterResult(verificationRequired: true) navigates to '
       '/verify-email-pending carrying the email', (tester) async {
@@ -79,12 +95,12 @@ void main() {
   );
 
   testWidgets(
-    'AuthErrorException(network flavor) keeps the user on /register and '
+    'AuthErrorException(emailAlreadyRegistered) keeps the user on /register and '
     'shows the email-already-registered hint',
     (tester) async {
       final harness = await pumpHeraldApp(tester, initialLocation: '/register');
       harness.repo.registerError = const AuthErrorException(
-        AuthError(AuthErrorKind.network),
+        AuthError(AuthErrorKind.emailAlreadyRegistered),
       );
 
       await fillAndSubmit(tester);
@@ -98,7 +114,6 @@ void main() {
       );
       expect(harness.repo.registerCalls, hasLength(1));
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-      // The page surfaces emailAlreadyRegistered + hint for the network bucket.
       expect(find.textContaining(l10n.emailAlreadyRegistered), findsWidgets);
       await drainSmartDialogToasts(tester);
     },

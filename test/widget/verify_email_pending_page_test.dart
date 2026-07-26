@@ -12,6 +12,8 @@
 // page's Timer.periodic is a FakeTimer under the test binding; we advance it
 // via tester.pump(Duration), which advances the binding's fake clock only.
 import 'package:app/l10n/app_localizations.dart';
+import 'package:app/services/auth/auth_error.dart';
+import 'package:app/services/auth/herald_auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -40,12 +42,53 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 
-      expect(repo.resendVerificationCalls.single, email);
+      expect(repo.resendVerificationCalls.single.email, email);
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
       expect(find.text(l10n.verificationEmailSent), findsWidgets);
       await drainSmartDialogToasts(tester);
     },
   );
+
+  testWidgets('Verification code confirms the email and returns to login', (
+    tester,
+  ) async {
+    final repo = await pumpPending(tester);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('verifyEmailCodeField')),
+      '123456',
+    );
+    await tester.tap(find.byKey(const ValueKey('verifyEmailSubmitButton')));
+    await tester.pumpAndSettle();
+
+    expect(repo.confirmEmailVerificationCalls, ['123456']);
+    expect(find.byKey(const ValueKey('loginSubmitButton')), findsOneWidget);
+    await drainSmartDialogToasts(tester);
+  });
+
+  testWidgets('Invalid verification code stays on page with precise message', (
+    tester,
+  ) async {
+    final repo = await pumpPending(tester);
+    repo.confirmEmailVerificationError = const AuthErrorException(
+      AuthError(AuthErrorKind.verificationCodeInvalid),
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('verifyEmailCodeField')),
+      '123456',
+    );
+    await tester.tap(find.byKey(const ValueKey('verifyEmailSubmitButton')));
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.text(l10n.verificationCodeInvalid), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('verifyEmailSubmitButton')),
+      findsOneWidget,
+    );
+    await drainSmartDialogToasts(tester);
+  });
 
   testWidgets(
     'Resend button is rate-limited by the 60s countdown, then re-enables',

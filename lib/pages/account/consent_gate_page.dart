@@ -4,12 +4,13 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_providers.dart';
 import '../../services/auth/auth_error.dart';
+import '../../services/auth/auth_redirect.dart';
 import '../../services/auth/auth_result.dart';
+import 'agreement_web_view_page.dart';
 
 /// Pre-session consent gate (design §4.4.2).
 ///
@@ -54,23 +55,20 @@ class ConsentGatePage extends HookConsumerWidget {
     }
 
     /// Maps UI [AgreementView]s back to the wire [AuthConsentAgreement] the
-    /// Herald accept flow expects. `AgreementView.id` carries the
-    /// `versionId` (see HeraldAuthRepository._agreementsFromSummaries /
-    /// _toAgreementView); `agreementType` is not surfaced on the UI model, so
-    /// we reuse the versionId as the best available identifier.
+    /// Herald accept flow expects.
     List<AuthConsentAgreement> toWire() {
       return agreements
           .map(
             (a) => AuthConsentAgreement(
               (b) => b
-                ..agreementType = a.id
+                ..agreementType = a.agreementType
                 ..versionId = a.id,
             ),
           )
           .toList(growable: false);
     }
 
-    Future<AuthResult> replay() async {
+    Future<Object> replay() async {
       final notifier = ref.read(authStateProvider.notifier);
       final wire = toWire();
       final kind = originalFlow['kind'];
@@ -89,10 +87,17 @@ class ConsentGatePage extends HookConsumerWidget {
           );
         case 'email-otp':
           final email = (originalFlow['email'] as String?) ?? '';
-          final code = (originalFlow['code'] as String?) ?? '';
           final turnstileToken = await ref
               .read(turnstileServiceProvider)
               .obtainToken();
+          if (originalFlow['stage'] == 'send') {
+            return notifier.sendEmailOtp(
+              email: email,
+              turnstileToken: turnstileToken,
+              agreements: wire,
+            );
+          }
+          final code = (originalFlow['code'] as String?) ?? '';
           return notifier.loginWithEmailOtp(
             email: email,
             code: code,
@@ -101,14 +106,15 @@ class ConsentGatePage extends HookConsumerWidget {
           );
         case 'totp':
           final tempToken = (originalFlow['tempToken'] as String?) ?? '';
+          final code = originalFlow['code'] as String?;
+          final backupCode = originalFlow['backupCode'] as String?;
           // TOTP replay does not take a Turnstile token (the session is already
           // half-established via tempToken); the notifier signature has no
           // turnstile param on verifyTotp.
           return notifier.verifyTotp(
             tempToken: tempToken,
-            code: '', // not re-collected here; the caller routes back to
-            // /totp-verify if TOTP+consent is the combined flow. This branch
-            // is reached only when /totp-verify itself returned consent.
+            code: code,
+            backupCode: backupCode,
             agreements: wire,
           );
         default:
@@ -126,8 +132,30 @@ class ConsentGatePage extends HookConsumerWidget {
       try {
         final result = await replay();
         switch (result) {
+          case SendEmailOtpResult(:final sent, :final expiresInSeconds):
+            if (sent) {
+              if (context.mounted) {
+                context.go(
+                  '/login',
+                  extra: {
+                    'email': (originalFlow['email'] as String?) ?? '',
+                    'emailOtpSent': true,
+                    'emailOtpExpiresInSeconds': expiresInSeconds,
+                    'returnTo': originalFlow['returnTo'] as String?,
+                  },
+                );
+              }
+            } else if (result.agreements != null) {
+              SmartDialog.showToast(l10n.consentRequired);
+            } else if (result.error case final error?) {
+              SmartDialog.showToast(errorForKind(error.kind));
+            }
           case AuthSuccess():
-            if (context.mounted) context.go('/index');
+            if (context.mounted) {
+              context.go(
+                safeAuthDestination(originalFlow['returnTo'] as String?),
+              );
+            }
           case AuthConsentRequired():
             // Server still requires consent (shouldn't happen after accept);
             // stay on the page so the user can retry.
@@ -246,44 +274,8 @@ class _AgreementCard extends StatelessWidget {
   void _openUrl(BuildContext context, String url) {
     Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute<void>(
-        builder: (_) => _AgreementWebViewPage(url: url, title: agreement.title),
+        builder: (_) => AgreementWebViewPage(url: url, title: agreement.title),
       ),
-    );
-  }
-}
-
-/// Minimal full-screen WebView for a single agreement URL. Not part of the
-/// go_router route table (pushed via root Navigator); lives in this file so no
-/// new route / `_anonymousPaths` entry is needed.
-class _AgreementWebViewPage extends StatefulWidget {
-  const _AgreementWebViewPage({required this.url, required this.title});
-
-  final String url;
-  final String title;
-
-  @override
-  State<_AgreementWebViewPage> createState() => _AgreementWebViewPageState();
-}
-
-class _AgreementWebViewPageState extends State<_AgreementWebViewPage> {
-  late final WebViewController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    final uri = Uri.tryParse(widget.url);
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted);
-    if (uri != null) {
-      _controller.loadRequest(uri);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: WebViewWidget(controller: _controller),
     );
   }
 }

@@ -68,11 +68,13 @@ class SendEmailOtpCall {
 /// Single recorded call to `verifyTotp`.
 class VerifyTotpCall {
   final String tempToken;
-  final String code;
+  final String? code;
+  final String? backupCode;
   final List<AuthConsentAgreement>? agreements;
   const VerifyTotpCall({
     required this.tempToken,
-    required this.code,
+    this.code,
+    this.backupCode,
     this.agreements,
   });
 }
@@ -96,7 +98,8 @@ class FakeHeraldAuthRepository implements HeraldAuthRepository {
   final List<SendEmailOtpCall> sendEmailOtpCalls = [];
   final List<VerifyTotpCall> verifyTotpCalls = [];
   final List<RegisterCall> registerCalls = [];
-  final List<String> resendVerificationCalls = [];
+  final List<ResendVerificationCall> resendVerificationCalls = [];
+  final List<String> confirmEmailVerificationCalls = [];
   final List<ResetPasswordRequestCall> requestResetPasswordCalls = [];
   final List<ConfirmResetPasswordCall> confirmResetPasswordCalls = [];
   final List<void> logoutCalls = [];
@@ -141,6 +144,7 @@ class FakeHeraldAuthRepository implements HeraldAuthRepository {
   /// Thrown by `resendVerification` when non-null; otherwise the call returns
   /// normally.
   AuthErrorException? resendVerificationError;
+  AuthErrorException? confirmEmailVerificationError;
 
   AuthErrorException? requestResetPasswordError;
   AuthErrorException? confirmResetPasswordError;
@@ -223,9 +227,21 @@ class FakeHeraldAuthRepository implements HeraldAuthRepository {
   }
 
   @override
-  Future<void> resendVerification({required String email}) async {
-    resendVerificationCalls.add(email);
+  Future<void> resendVerification({
+    required String email,
+    String? turnstileToken,
+  }) async {
+    resendVerificationCalls.add(
+      ResendVerificationCall(email: email, turnstileToken: turnstileToken),
+    );
     final error = resendVerificationError;
+    if (error != null) throw error;
+  }
+
+  @override
+  Future<void> confirmEmailVerification({required String code}) async {
+    confirmEmailVerificationCalls.add(code);
+    final error = confirmEmailVerificationError;
     if (error != null) throw error;
   }
 
@@ -261,11 +277,17 @@ class FakeHeraldAuthRepository implements HeraldAuthRepository {
   @override
   Future<AuthResult> verifyTotp({
     required String tempToken,
-    required String code,
+    String? code,
+    String? backupCode,
     List<AuthConsentAgreement>? agreements,
   }) async {
     verifyTotpCalls.add(
-      VerifyTotpCall(tempToken: tempToken, code: code, agreements: agreements),
+      VerifyTotpCall(
+        tempToken: tempToken,
+        code: code,
+        backupCode: backupCode,
+        agreements: agreements,
+      ),
     );
     return _asFuture(verifyTotpResult);
   }
@@ -290,6 +312,12 @@ class ResetPasswordRequestCall {
   final String email;
   final String? turnstileToken;
   const ResetPasswordRequestCall({required this.email, this.turnstileToken});
+}
+
+class ResendVerificationCall {
+  final String email;
+  final String? turnstileToken;
+  const ResendVerificationCall({required this.email, this.turnstileToken});
 }
 
 class ConfirmResetPasswordCall {

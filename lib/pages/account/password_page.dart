@@ -58,6 +58,9 @@ class ChangePasswordPage extends HookConsumerWidget {
         case AuthErrorKind.invalidCredentials:
         case AuthErrorKind.accountNotActivated:
         case AuthErrorKind.emailNotRegistered:
+        case AuthErrorKind.emailAlreadyRegistered:
+        case AuthErrorKind.verificationCodeInvalid:
+        case AuthErrorKind.resetCodeInvalid:
         case AuthErrorKind.consentRequired:
         case AuthErrorKind.sessionExpired:
           return l10n.unexpectedError(kind.name);

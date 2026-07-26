@@ -165,6 +165,30 @@ abstract class AppLocalizations {
   /// **'Change Password'**
   String get changePassword;
 
+  /// No description provided for @currentPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password'**
+  String get currentPassword;
+
+  /// No description provided for @wrongCurrentPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'The current password is incorrect.'**
+  String get wrongCurrentPassword;
+
+  /// No description provided for @reauthExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification expired. Please try again.'**
+  String get reauthExpired;
+
+  /// No description provided for @passwordChangedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Password changed successfully.'**
+  String get passwordChangedSuccess;
+
   /// No description provided for @resetPassword.
   ///
   /// In en, this message translates to:
@@ -381,6 +405,30 @@ abstract class AppLocalizations {
   /// **'Enter the 6-digit code from your authenticator app'**
   String get enterTotpCode;
 
+  /// No description provided for @enterBackupCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter one of your 8-character backup recovery codes'**
+  String get enterBackupCode;
+
+  /// No description provided for @useBackupCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a backup code instead'**
+  String get useBackupCode;
+
+  /// No description provided for @useTotpCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Use authenticator code instead'**
+  String get useTotpCode;
+
+  /// No description provided for @invalidBackupCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an 8-character backup code'**
+  String get invalidBackupCode;
+
   /// No description provided for @totpExpired.
   ///
   /// In en, this message translates to:
@@ -471,6 +519,18 @@ abstract class AppLocalizations {
   /// **'Create Account'**
   String get registerTitle;
 
+  /// No description provided for @registrationDisabledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration is disabled'**
+  String get registrationDisabledTitle;
+
+  /// No description provided for @registrationDisabledDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'This realm is not accepting new account registrations.'**
+  String get registrationDisabledDescription;
+
   /// No description provided for @enterConfirmPassword.
   ///
   /// In en, this message translates to:
@@ -507,6 +567,12 @@ abstract class AppLocalizations {
   /// **'This email is already registered.'**
   String get emailAlreadyRegistered;
 
+  /// No description provided for @verificationCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The verification code is invalid or expired.'**
+  String get verificationCodeInvalid;
+
   /// No description provided for @emailAlreadyRegisteredHint.
   ///
   /// In en, this message translates to:
@@ -536,6 +602,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Verification email sent.'**
   String get verificationEmailSent;
+
+  /// No description provided for @emailVerificationSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Email verified successfully.'**
+  String get emailVerificationSuccess;
 
   /// No description provided for @resetPasswordConfirmTitle.
   ///
@@ -578,6 +650,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back to Login'**
   String get backToLogin;
+
+  /// No description provided for @pointsBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Points balance'**
+  String get pointsBalance;
+
+  /// No description provided for @accountOverviewFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load account information.'**
+  String get accountOverviewFailed;
+
+  /// No description provided for @purchasePoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy points'**
+  String get purchasePoints;
+
+  /// No description provided for @stripeCreemCheckout.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure checkout with Stripe or Creem'**
+  String get stripeCreemCheckout;
+
+  /// No description provided for @billingNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchases are not configured. Set HERALD_CLIENT_APP_UUID for this build.'**
+  String get billingNotConfigured;
+
+  /// No description provided for @purchaseOptionsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load purchase options.'**
+  String get purchaseOptionsFailed;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @noPurchaseOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'No purchase options are available.'**
+  String get noPurchaseOptions;
+
+  /// No description provided for @pointsAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'{points} points'**
+  String pointsAmount(Object points);
+
+  /// No description provided for @priceUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Price unavailable'**
+  String get priceUnavailable;
+
+  /// No description provided for @alreadyOwned.
+  ///
+  /// In en, this message translates to:
+  /// **'Already owned'**
+  String get alreadyOwned;
+
+  /// No description provided for @openingCheckout.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening checkout...'**
+  String get openingCheckout;
+
+  /// No description provided for @buyNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy now'**
+  String get buyNow;
+
+  /// No description provided for @waitingForPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for payment confirmation'**
+  String get waitingForPayment;
+
+  /// No description provided for @paymentWebhookHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Points are credited only after the server confirms the provider webhook.'**
+  String get paymentWebhookHint;
+
+  /// No description provided for @checkPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Check status'**
+  String get checkPayment;
+
+  /// No description provided for @paymentSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment confirmed. Your points were updated.'**
+  String get paymentSucceeded;
+
+  /// No description provided for @paymentFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment was not completed.'**
+  String get paymentFailed;
+
+  /// No description provided for @paymentStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not check payment status. Please try again.'**
+  String get paymentStatusFailed;
+
+  /// No description provided for @purchaseFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open checkout. Please try again.'**
+  String get purchaseFailed;
 }
 
 class _AppLocalizationsDelegate

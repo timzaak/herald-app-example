@@ -50,6 +50,52 @@ void main() {
     expect(harness.repo.verifyTotpCalls.single.code, code);
   });
 
+  testWidgets('AuthSuccess preserves the pre-login destination', (
+    tester,
+  ) async {
+    final harness = await pumpHeraldApp(
+      tester,
+      initialLocation: '/totp-verify',
+      initialExtra: const {
+        'tempToken': tempToken,
+        'secondFactors': <String>['totp'],
+        'returnTo': '/my',
+      },
+    );
+    harness.repo.verifyTotpResult = FutureOrResult.value(authSuccess());
+
+    await enterCodeAndSubmit(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.logout), findsOneWidget);
+  });
+
+  testWidgets('backup-code mode sends uppercase backupCode without TOTP code', (
+    tester,
+  ) async {
+    final harness = await pumpHeraldApp(
+      tester,
+      initialLocation: '/totp-verify',
+      initialExtra: const {
+        'tempToken': tempToken,
+        'secondFactors': <String>['totp'],
+      },
+    );
+    harness.repo.verifyTotpResult = FutureOrResult.value(authSuccess());
+
+    await tester.tap(find.byKey(const ValueKey('totpCodeModeButton')));
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('totpCodeField')),
+      'ab12cd34',
+    );
+    await tester.tap(find.byKey(const ValueKey('totpVerifyButton')));
+    await tester.pumpAndSettle();
+
+    expect(harness.repo.verifyTotpCalls.single.code, isNull);
+    expect(harness.repo.verifyTotpCalls.single.backupCode, 'AB12CD34');
+  });
+
   testWidgets('AuthConsentRequired navigates to /consent with '
       'originalFlow.kind == totp + tempToken', (tester) async {
     final harness = await pumpHeraldApp(
@@ -62,7 +108,7 @@ void main() {
     );
     harness.repo.verifyTotpResult = FutureOrResult.value(
       AuthConsentRequired(const [
-        AgreementView(id: 'terms-v1', title: 'Terms'),
+        AgreementView(agreementType: 'terms', id: 'terms-v1', title: 'Terms'),
       ]),
     );
 
@@ -71,6 +117,41 @@ void main() {
 
     expect(find.byKey(const ValueKey('consentAcceptButton')), findsOneWidget);
     expect(find.text('Terms'), findsOneWidget);
+  });
+
+  testWidgets('backup code is preserved when routing through consent', (
+    tester,
+  ) async {
+    final harness = await pumpHeraldApp(
+      tester,
+      initialLocation: '/totp-verify',
+      initialExtra: const {
+        'tempToken': tempToken,
+        'secondFactors': <String>['totp'],
+      },
+    );
+    harness.repo.verifyTotpResult = FutureOrResult.value(
+      AuthConsentRequired(const [
+        AgreementView(agreementType: 'terms', id: 'terms-v1', title: 'Terms'),
+      ]),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('totpCodeModeButton')));
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('totpCodeField')),
+      'ab12cd34',
+    );
+    await tester.tap(find.byKey(const ValueKey('totpVerifyButton')));
+    await tester.pumpAndSettle();
+
+    harness.repo.verifyTotpResult = FutureOrResult.value(authSuccess());
+    await tester.tap(find.byKey(const ValueKey('consentAcceptButton')));
+    await tester.pumpAndSettle();
+
+    expect(harness.repo.verifyTotpCalls, hasLength(2));
+    expect(harness.repo.verifyTotpCalls.last.code, isNull);
+    expect(harness.repo.verifyTotpCalls.last.backupCode, 'AB12CD34');
   });
 
   testWidgets(

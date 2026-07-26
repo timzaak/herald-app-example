@@ -4,7 +4,10 @@ import 'package:app/api/dio_util.dart';
 import 'package:app/config/settings.dart';
 import 'package:app/services/auth/auth_error.dart';
 import 'package:app/services/auth/auth_result.dart';
+import 'package:app/services/auth/account_security_service.dart';
 import 'package:app/services/auth/herald_auth_repository.dart';
+import 'package:app/services/auth/legal_agreement_service.dart';
+import 'package:app/services/auth/public_auth_config_service.dart';
 import 'package:app/services/auth/token_store.dart';
 import 'package:app/services/auth/turnstile_service.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -116,13 +119,15 @@ class AuthStateNotifier extends Notifier<AuthState> {
   /// success.
   Future<AuthResult> verifyTotp({
     required String tempToken,
-    required String code,
+    String? code,
+    String? backupCode,
     List<AuthConsentAgreement>? agreements,
   }) async {
     state = state.copyWith(loading: true);
     final result = await _repository.verifyTotp(
       tempToken: tempToken,
       code: code,
+      backupCode: backupCode,
       agreements: agreements,
     );
     state = _applyResult(result);
@@ -221,6 +226,49 @@ final turnstileServiceProvider = Provider<TurnstileService>((ref) {
   );
 });
 
+/// Public email-OTP capability for the configured realm. Fail closed so a
+/// disabled, misconfigured, or unreachable endpoint never exposes a dead
+/// login option.
+final emailOtpEnabledProvider = FutureProvider<bool>((ref) async {
+  if (Settings.heraldRealmId.isEmpty) return false;
+  try {
+    final apiClient = ref.watch(apiClientProvider);
+    final response = await apiClient.getAuthApi().status_1(
+      realmId: Settings.heraldRealmId,
+    );
+    return response.data?.enabled == true;
+  } on Object {
+    return false;
+  }
+});
+
+final publicAuthConfigServiceProvider = Provider<PublicAuthConfigService>((
+  ref,
+) {
+  return HeraldPublicAuthConfigService(DioUtil.dio, Settings.heraldRealmId);
+});
+
+final legalAgreementServiceProvider = Provider<LegalAgreementService>((ref) {
+  return HeraldLegalAgreementService(DioUtil.dio, Settings.heraldRealmId);
+});
+
+/// Public registration capability for the configured realm. Fail closed:
+/// direct navigation to `/register` must not expose a disabled registration
+/// form when the public-config endpoint is unavailable or malformed.
+final registrationEnabledProvider = FutureProvider<bool>((ref) async {
+  if (Settings.heraldRealmId.isEmpty) return false;
+  try {
+    final config = await ref.watch(publicAuthConfigServiceProvider).getConfig();
+    return config.registrationEnabled;
+  } on Object {
+    return false;
+  }
+});
+
+final accountSecurityServiceProvider = Provider<AccountSecurityService>((ref) {
+  return HeraldAccountSecurityService(DioUtil.dio);
+});
+
 /// Exposes the [DioAuthInterceptor] mounted on [DioUtil.dio] (FL-D01). This is
 /// the single Bearer-Authorization source. `main.dart` activates it via
 /// `DioUtil.bindAuth(...)` with provider-backed `refreshFn` / `onSessionEnd`
@@ -260,10 +308,7 @@ final dioAuthInterceptorProvider = Provider<DioAuthInterceptor>((ref) {
       final accessToken = data.accessToken;
       final newRefresh = data.refreshToken;
       if (accessToken.isEmpty || newRefresh.isEmpty) return false;
-      await tokenStore.save(
-        accessToken: accessToken,
-        refreshToken: newRefresh,
-      );
+      await tokenStore.save(accessToken: accessToken, refreshToken: newRefresh);
       return true;
     } on Object {
       return false;
