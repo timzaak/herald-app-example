@@ -1,15 +1,44 @@
 import 'package:dio/dio.dart';
 
+/// Membership display snapshot for the MyPage membership row — the
+/// entitlement key + billing type from the most recent fulfillment. This is
+/// display state only, NOT authoritative entitlement; see
+/// [AccountOverview.membership].
+class MembershipStatus {
+  const MembershipStatus({
+    required this.entitlementKey,
+    required this.billingType,
+  });
+
+  /// e.g. `'pro_monthly'`.
+  final String entitlementKey;
+
+  /// `'recurring'` / `'one_time'`.
+  final String billingType;
+}
+
 class AccountOverview {
   const AccountOverview({
     required this.email,
     required this.points,
     this.nickname,
+    this.membership,
   });
 
   final String email;
   final String? nickname;
   final int points;
+
+  /// Membership display snapshot. null = no membership (the MyPage renders
+  /// the buy-entry tile only).
+  ///
+  /// EVIDENCE LIMITATION: this is **display state only** (the most recent
+  /// fulfillment), NOT authoritative entitlement — the backend receipt /
+  /// entitlement query is authoritative. `getOverview()` currently leaves this
+  /// null because neither `/api/user/profile` nor `/api/user/wallets` carries
+  /// an entitlement field (verified against the response shapes — do NOT
+  /// invent a field).
+  final MembershipStatus? membership;
 }
 
 abstract class AccountService {

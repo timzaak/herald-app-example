@@ -144,6 +144,23 @@ class MyPage extends HookConsumerWidget {
                         key: const ValueKey('pointsBalance'),
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
+                      const SizedBox(height: 20),
+                      // Membership display (evidence-limited). getOverview()
+                      // currently leaves `membership` null — the null branch
+                      // (membershipNone + the purchase tile below) is the live
+                      // path. The non-null branch renders a lastFulfillment
+                      // snapshot, NOT a verified entitlement.
+                      Text(l10n.membershipLabel),
+                      const SizedBox(height: 4),
+                      Text(
+                        key: const ValueKey('membershipStatus'),
+                        account.membership != null
+                            ? '${l10n.membershipActive}: '
+                                  '${account.membership!.entitlementKey} '
+                                  '(${account.membership!.billingType})'
+                            : l10n.membershipNone,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                     ],
                   ),
                 ),
@@ -154,7 +171,7 @@ class MyPage extends HookConsumerWidget {
             key: const ValueKey('purchasePointsTile'),
             leading: const Icon(Icons.shopping_cart_checkout),
             title: Text(l10n.purchasePoints),
-            subtitle: Text(l10n.stripeCreemCheckout),
+            subtitle: Text(l10n.iapCheckoutSubtitle),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.pushNamed(PurchasePage.sName),
           ),

@@ -1,8 +1,8 @@
-// Unit tests for HeraldAuthRepository (design §6.1, FL-D02).
+// Unit tests for HeraldAuthRepository.
 //
 // Exercises the lenient multi-branch parse and the AuthError classification
 // table by scripting raw Herald response bodies through a real AuthApi mounted
-// on a Dio with a hand-rolled HttpClientAdapter. Per the §6.1 decoupling note,
+// on a Dio with a hand-rolled HttpClientAdapter. Per the decoupling approach,
 // responses are constructed as Map literals — the repository reads raw bodies
 // and never trusts the generated declared return type.
 //
@@ -752,5 +752,175 @@ void main() {
 
       expect(tokenStore.accessToken, isNull);
     });
+  });
+
+  group('HeraldAuthRepository.currentUserId', () {
+    // WHY: currentUserId reads /api/auth/status at
+    // runtime; it is never persisted and must never throw (the caller blocks
+    // the purchase when null). These cases mirror checkStatus's lenient-read
+    // approach but assert the userId field instead of authenticated.
+
+    test('200 with userId non-empty → returns it', () async {
+      final userId = '11111111-2222-4333-8444-555555555555';
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(200, {
+            'authenticated': true,
+            'credentialClass': 'first_party',
+            'scopes': [],
+            'realmId': 'r',
+            'userId': userId,
+          }),
+        ],
+      );
+      final (repo, _) = _buildRepo(adapter);
+
+      expect(await repo.currentUserId(), userId);
+    });
+
+    test('200 with userId null/empty → returns null', () async {
+      // WHEN the typed StatusResponse.userId is null, currentUserId must fall
+      // through to the lenient map read and (finding nothing) return null —
+      // never throw.
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(200, {
+            'authenticated': true,
+            'credentialClass': 'first_party',
+            'scopes': [],
+            'realmId': 'r',
+            'userId': null,
+          }),
+        ],
+      );
+      final (repo, _) = _buildRepo(adapter);
+
+      expect(await repo.currentUserId(), isNull);
+    });
+
+    test('200 with userId only in raw map (DTO shape drift) → lenient read '
+        'returns it', () async {
+      // Mirrors checkStatus's _bodyAuthenticated lenient fallback: if the
+      // generated DTO somehow fails to surface userId, the raw map read must
+      // still recover it.
+      final userId = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(200, {
+            'authenticated': true,
+            'credentialClass': 'first_party',
+            'scopes': [],
+            'realmId': 'r',
+            'userId': userId,
+          }),
+        ],
+      );
+      final (repo, _) = _buildRepo(adapter);
+
+      expect(await repo.currentUserId(), userId);
+    });
+
+    test('401 → returns null (no throw)', () async {
+      // The interceptor's single refresh attempt has failed; currentUserId
+      // must fail closed (null) so the caller blocks the purchase instead of
+      // injecting an empty ownership binding.
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(401, {'code': 'unauthorized'}),
+        ],
+      );
+      final (repo, _) = _buildRepo(adapter);
+
+      expect(await repo.currentUserId(), isNull);
+    });
+
+    test('config missing (blank realm) → null, no network call', () async {
+      final adapter = _ScriptedAdapter(() => [_jsonBody(200, {})]); // unused
+      final (repo, _) = _buildRepo(adapter, realmId: '', clientId: 'c');
+
+      expect(await repo.currentUserId(), isNull);
+      expect(
+        adapter.requestedPaths,
+        isEmpty,
+        reason: 'config-missing preflight must skip the network entirely',
+      );
+    });
+
+    test(
+      'checkStatus seeds the snapshot — currentUserId reuses it (no 2nd call)',
+      () async {
+        // WHY: the startup checkStatus() probe already fetches
+        // /api/auth/status; opening the purchase page must NOT trigger a
+        // second round-trip for the userId. The adapter scripts exactly ONE
+        // status response — a second fetch would drain the queue and throw.
+        final userId = '11111111-2222-4333-8444-555555555555';
+        final adapter = _ScriptedAdapter(
+          () => [
+            _jsonBody(200, {
+              'authenticated': true,
+              'credentialClass': 'first_party',
+              'scopes': [],
+              'realmId': 'r',
+              'userId': userId,
+            }),
+          ],
+        );
+        final (repo, _) = _buildRepo(adapter);
+
+        expect(await repo.checkStatus(), isTrue);
+        expect(
+          await repo.currentUserId(),
+          userId,
+          reason: 'currentUserId must reuse the checkStatus snapshot',
+        );
+        expect(
+          adapter.requestedPaths,
+          hasLength(1),
+          reason: 'checkStatus + currentUserId share a single status call',
+        );
+      },
+    );
+
+    test(
+      'logout clears the snapshot — currentUserId re-fetches (no stale id)',
+      () async {
+        // WHY: an account switch (logout) must never serve the previous user's
+        // cached id to the purchase ownership binding. logout() drops the
+        // snapshot so the next currentUserId() hits the network again.
+        final adapter = _ScriptedAdapter(
+          () => [
+            _jsonBody(200, {
+              'authenticated': true,
+              'credentialClass': 'first_party',
+              'scopes': [],
+              'realmId': 'r',
+              'userId': 'user-A',
+            }),
+            _jsonBody(200, {}), // logout response (best-effort, body unused)
+            _jsonBody(200, {
+              'authenticated': true,
+              'credentialClass': 'first_party',
+              'scopes': [],
+              'realmId': 'r',
+              'userId': 'user-B',
+            }),
+          ],
+        );
+        final (repo, _) = _buildRepo(adapter);
+
+        expect(await repo.checkStatus(), isTrue); // call 1 → caches user-A
+        await repo.logout(); // call 2 (logout) → clears the snapshot
+        expect(
+          await repo.currentUserId(),
+          'user-B',
+          reason: 'logout invalidated the cache — currentUserId re-fetches',
+        );
+        expect(
+          adapter.requestedPaths,
+          hasLength(3),
+          reason: 'status + logout + status',
+        );
+      },
+    );
   });
 }

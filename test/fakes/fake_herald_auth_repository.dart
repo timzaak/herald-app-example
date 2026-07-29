@@ -1,13 +1,13 @@
-// Hand-rolled fake of [HeraldAuthRepository] for widget tests (FL-T01).
+// Hand-rolled fake of [HeraldAuthRepository] for widget tests.
 //
 // Why a hand-rolled fake (not mockito): guides/flutter/testing.md prefers
 // fakes over call-count-based mocking for stable, intent-revealing tests, and
-// the FL-T01 item pins this ("fake 优先"). This fake records every call's args
+// (the project testing guide pins "fake 优先"). This fake records every call's args
 // into exposed `*Calls` lists and returns queued `*Result` values set by the
 // test. It is the ONLY fake point at the widget layer — dio is never mocked
-// here (dio is covered at the unit layer in FL-D01).
+// here (dio is covered at the unit layer).
 //
-// Repository contract honored (FL-D02 binding):
+// Repository contract honored:
 // - `loginWithPassword` / `loginWithEmailOtp` / `verifyTotp` / `sendEmailOtp`
 //   return their result type (never throw).
 // - `register` / `resendVerification` / `requestResetPassword` /
@@ -131,7 +131,7 @@ class FakeHeraldAuthRepository implements HeraldAuthRepository {
 
   /// Thrown by `register` when non-null. When null, [registerResult] is
   /// returned. Kept separate from the result because `register` throws on
-  /// failure (FL-D02 binding).
+  /// failure (register throws on failure).
   AuthErrorException? registerError;
   RegisterResult registerResult = const RegisterResult(false);
 
@@ -151,6 +151,13 @@ class FakeHeraldAuthRepository implements HeraldAuthRepository {
 
   /// `checkStatus` never throws; returns this bool.
   bool checkStatusResult = false;
+
+  /// Result returned by `currentUserId`. Defaults to
+  /// null so a test that forgets to seed a value fails loudly: the notifier
+  /// blocks the purchase when userId is null (fail-closed), surfacing a
+  /// deterministic generic failure rather than silently injecting an empty
+  /// ownership binding.
+  String? currentUserIdResult;
 
   // ---- HeraldAuthRepository implementation ----
 
@@ -294,6 +301,9 @@ class FakeHeraldAuthRepository implements HeraldAuthRepository {
 
   @override
   Future<bool> checkStatus() async => checkStatusResult;
+
+  @override
+  Future<String?> currentUserId() async => currentUserIdResult;
 
   @override
   Future<void> logout() async {

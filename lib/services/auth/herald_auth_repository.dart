@@ -74,6 +74,17 @@ abstract class HeraldAuthRepository {
   /// failed). Never throws.
   Future<bool> checkStatus();
 
+  /// Current Herald `user_id`. Read from `GET /api/auth/status` `userId`
+  /// field. Returns null on missing config, unauthenticated, or any failure —
+  /// never throws (the caller blocks the purchase when null).
+  ///
+  /// The impl reuses the startup [checkStatus] `/api/auth/status` snapshot
+  /// when available, so opening the purchase page does not trigger a second
+  /// status round-trip. The snapshot is cleared on login/logout, so the cached
+  /// id always belongs to the currently-authenticated user; it is never
+  /// persisted in [TokenStore] / [AuthSession].
+  Future<String?> currentUserId();
+
   /// Best-effort logout; always clears the local [TokenStore].
   Future<void> logout();
 }
@@ -351,24 +362,63 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
     }
   }
 
-  @override
-  Future<bool> checkStatus() async {
-    if (_isConfigMissing()) return false;
+  /// Cached `GET /api/auth/status` snapshot — lets the startup [checkStatus]
+  /// probe and [currentUserId] share one network call per auth session.
+  /// Populated on a successful parse; cleared by [_persist] (login) and
+  /// [logout] so an account switch never serves a stale `userId` to the
+  /// purchase ownership binding. null = not yet fetched, last fetch failed,
+  /// or cleared.
+  ({bool authenticated, String? userId})? _statusSnapshot;
+
+  /// Fetches `/api/auth/status`, parses both `authenticated` and `userId`, and
+  /// caches the snapshot on success. Config-missing and any failure (401 after
+  /// the interceptor's single refresh, network, …) return the
+  /// unauthenticated/empty snapshot WITHOUT caching, so a later caller retries.
+  Future<({bool authenticated, String? userId})> _fetchStatus() async {
+    if (_isConfigMissing()) return const (authenticated: false, userId: null);
     try {
       final response = await _authApi.status();
+      final data = response.data;
       final authenticated =
-          response.data?.authenticated == true ||
-          _bodyAuthenticated(response.data);
-      return authenticated;
+          data?.authenticated == true || _bodyAuthenticated(data);
+      // userId: typed getter first, then the lenient raw-map fallback (mirrors
+      // _bodyAuthenticated — covers DTO-shape drift / recovered raw Maps).
+      final typedUserId = data?.userId;
+      String? userId;
+      if (typedUserId != null && typedUserId.isNotEmpty) {
+        userId = typedUserId;
+      } else {
+        final raw = _readString(_asMap(data), 'userId');
+        userId = (raw != null && raw.isNotEmpty) ? raw : null;
+      }
+      final status = (authenticated: authenticated, userId: userId);
+      _statusSnapshot = status;
+      return status;
     } on Object {
-      // 401 (after the interceptor's single refresh attempt failed) or any
-      // other failure ⇒ not authenticated. Do NOT throw.
-      return false;
+      // 401 (after refresh failure) or any other failure ⇒ fail closed: the
+      // caller blocks the purchase instead of injecting an empty/invalid
+      // ownership binding. Do NOT cache; do NOT throw.
+      return const (authenticated: false, userId: null);
     }
   }
 
   @override
+  Future<bool> checkStatus() async => (await _fetchStatus()).authenticated;
+
+  @override
+  Future<String?> currentUserId() async {
+    // Reuse the startup checkStatus() snapshot when present so opening the
+    // purchase page does NOT trigger a second `/api/auth/status` round-trip.
+    // The snapshot is cleared on login/logout, so a returning user's cached id
+    // is the correct ownership binding.
+    final cached = _statusSnapshot;
+    if (cached != null) return cached.userId;
+    return (await _fetchStatus()).userId;
+  }
+
+  @override
   Future<void> logout() async {
+    _statusSnapshot = null;
     try {
       await _authApi.logout();
     } on Object {
@@ -521,6 +571,9 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
 
   Future<void> _persist(AuthSession session) async {
     if (session.refreshToken.isEmpty) return;
+    // A (possibly different) user just authenticated — drop the cached status
+    // so the next currentUserId()/checkStatus() re-reads the live session.
+    _statusSnapshot = null;
     await _tokenStore.save(
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,

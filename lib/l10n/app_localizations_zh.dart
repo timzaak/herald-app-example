@@ -362,6 +362,39 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get purchaseFailed => '无法打开结账页面，请重试。';
+
+  @override
+  String get iapCheckoutSubtitle => '通过 App Store / Google Play 购买';
+
+  @override
+  String get restorePurchase => '恢复购买';
+
+  @override
+  String get iapVerificationFailed => '购买验证失败，请尝试恢复。';
+
+  @override
+  String get iapOwnershipMismatch => '购买归属校验未通过，请重新购买。';
+
+  @override
+  String get iapAlreadyConsumed => '该购买已被使用。';
+
+  @override
+  String get iapProductUnavailable => '该商品暂不可购买。';
+
+  @override
+  String get iapRestoreNothing => '未发现可恢复的购买。';
+
+  @override
+  String get iapPurchaseCancelHint => '购买已取消，您可以稍后恢复。';
+
+  @override
+  String get membershipLabel => '会员';
+
+  @override
+  String get membershipActive => '已开通';
+
+  @override
+  String get membershipNone => '暂无会员';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -722,4 +755,37 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get purchaseFailed => '無法開啟結帳頁面，請重試。';
+
+  @override
+  String get iapCheckoutSubtitle => '透過 App Store / Google Play 購買';
+
+  @override
+  String get restorePurchase => '恢復購買';
+
+  @override
+  String get iapVerificationFailed => '購買驗證失敗，請嘗試恢復。';
+
+  @override
+  String get iapOwnershipMismatch => '購買歸屬校驗未通過，請重新購買。';
+
+  @override
+  String get iapAlreadyConsumed => '該購買已被使用。';
+
+  @override
+  String get iapProductUnavailable => '該商品暫不可購買。';
+
+  @override
+  String get iapRestoreNothing => '未發現可恢復的購買。';
+
+  @override
+  String get iapPurchaseCancelHint => '購買已取消，您可以稍後恢復。';
+
+  @override
+  String get membershipLabel => '會員';
+
+  @override
+  String get membershipActive => '已開通';
+
+  @override
+  String get membershipNone => '暫無會員';
 }

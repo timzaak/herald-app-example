@@ -1,7 +1,7 @@
-// Unit tests for DioAuthInterceptor (design §6.1).
+// Unit tests for DioAuthInterceptor.
 //
 // Covers the five transport-layer scenarios whose failure attribution belongs
-// to FL-D01: Authorization injection; 401 refresh+replay; concurrent 401 single
+// to the transport layer: Authorization injection; 401 refresh+replay; concurrent 401 single
 // refresh; refresh-failure clear+onSessionEnd; refresh endpoint 401 no-recursion.
 //
 // No new deps (Rule 2): the interceptor is exercised through a real Dio with a
@@ -384,50 +384,44 @@ void main() {
       },
     );
 
-    test(
-      '(f) a 401 on the replayed request is not refreshed again',
-      () async {
-        final tokenStore = _FakeTokenStore()..accessToken = 'expired-token';
-        var refreshCalls = 0;
-        Future<bool> refreshFn() async {
-          refreshCalls++;
-          // Simulate AuthApi.refresh persisting a new token into the store.
-          await tokenStore.save(
-            accessToken: 'fresh-token',
-            refreshToken: 'fresh-refresh',
-          );
-          return true;
-        }
-
-        // First call 401 (triggers refresh + replay); the replay also 401.
-        // The replayed 401 must surface directly — no second refresh — so a
-        // persistently-401 resource (valid token but no permission, or a new
-        // token that is also rejected) cannot loop refresh forever.
-        final adapter = _ScriptedAdapter(
-          () => [
-            _jsonBody(401, {}),
-            _jsonBody(401, {}),
-          ],
+    test('(f) a 401 on the replayed request is not refreshed again', () async {
+      final tokenStore = _FakeTokenStore()..accessToken = 'expired-token';
+      var refreshCalls = 0;
+      Future<bool> refreshFn() async {
+        refreshCalls++;
+        // Simulate AuthApi.refresh persisting a new token into the store.
+        await tokenStore.save(
+          accessToken: 'fresh-token',
+          refreshToken: 'fresh-refresh',
         );
-        final dio = _buildDio(tokenStore, refreshFn, () async {}, adapter);
+        return true;
+      }
 
-        await expectLater(
-          dio.get('/api/auth/status'),
-          throwsA(
-            isA<DioException>().having(
-              (e) => e.response?.statusCode,
-              'statusCode',
-              401,
-            ),
+      // First call 401 (triggers refresh + replay); the replay also 401.
+      // The replayed 401 must surface directly — no second refresh — so a
+      // persistently-401 resource (valid token but no permission, or a new
+      // token that is also rejected) cannot loop refresh forever.
+      final adapter = _ScriptedAdapter(
+        () => [_jsonBody(401, {}), _jsonBody(401, {})],
+      );
+      final dio = _buildDio(tokenStore, refreshFn, () async {}, adapter);
+
+      await expectLater(
+        dio.get('/api/auth/status'),
+        throwsA(
+          isA<DioException>().having(
+            (e) => e.response?.statusCode,
+            'statusCode',
+            401,
           ),
-        );
+        ),
+      );
 
-        expect(
-          refreshCalls,
-          1,
-          reason: 'a 401 on the replay must not trigger a second refresh',
-        );
-      },
-    );
+      expect(
+        refreshCalls,
+        1,
+        reason: 'a 401 on the replay must not trigger a second refresh',
+      );
+    });
   });
 }

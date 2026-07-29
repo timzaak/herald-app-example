@@ -111,5 +111,19 @@
     "paymentSucceeded": "付款已確認，積分已更新。",
     "paymentFailed": "付款未完成。",
     "paymentStatusFailed": "暫時無法查詢付款狀態，請重試。",
-    "purchaseFailed": "無法開啟結帳頁面，請重試。"
+    "purchaseFailed": "無法開啟結帳頁面，請重試。",
+    "iapCheckoutSubtitle": "透過 App Store / Google Play 購買",
+    "restorePurchase": "恢復購買",
+    "iapVerificationFailed": "購買驗證失敗，請嘗試恢復。",
+    "iapOwnershipMismatch": "購買歸屬校驗未通過，請重新購買。",
+    "iapAlreadyConsumed": "該購買已被使用。",
+    "iapProductUnavailable": "該商品暫不可購買。",
+    "iapRestoreNothing": "未發現可恢復的購買。",
+    "iapPurchaseCancelHint": "購買已取消，您可以稍後恢復。",
+    "membershipLabel": "會員",
+    "@membershipActive": {
+        "description": "會員已開通標籤，與權益 key 及計費類型一同顯示。"
+    },
+    "membershipActive": "已開通",
+    "membershipNone": "暫無會員"
 }

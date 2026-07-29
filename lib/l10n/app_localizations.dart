@@ -770,6 +770,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not open checkout. Please try again.'**
   String get purchaseFailed;
+
+  /// No description provided for @iapCheckoutSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy via App Store / Google Play'**
+  String get iapCheckoutSubtitle;
+
+  /// No description provided for @restorePurchase.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore purchases'**
+  String get restorePurchase;
+
+  /// No description provided for @iapVerificationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase verification failed. Try restoring.'**
+  String get iapVerificationFailed;
+
+  /// No description provided for @iapOwnershipMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase ownership check failed. Please repurchase.'**
+  String get iapOwnershipMismatch;
+
+  /// No description provided for @iapAlreadyConsumed.
+  ///
+  /// In en, this message translates to:
+  /// **'This purchase has already been used.'**
+  String get iapAlreadyConsumed;
+
+  /// No description provided for @iapProductUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This product is currently unavailable.'**
+  String get iapProductUnavailable;
+
+  /// No description provided for @iapRestoreNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'No restorable purchases found.'**
+  String get iapRestoreNothing;
+
+  /// No description provided for @iapPurchaseCancelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase canceled. You can restore later.'**
+  String get iapPurchaseCancelHint;
+
+  /// No description provided for @membershipLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Membership'**
+  String get membershipLabel;
+
+  /// Membership active label, shown with the entitlement key and billing type.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get membershipActive;
+
+  /// No description provided for @membershipNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No active membership'**
+  String get membershipNone;
 }
 
 class _AppLocalizationsDelegate

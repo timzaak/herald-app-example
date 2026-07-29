@@ -111,5 +111,19 @@
     "paymentSucceeded": "付款已确认，积分已更新。",
     "paymentFailed": "付款未完成。",
     "paymentStatusFailed": "暂时无法查询付款状态，请重试。",
-    "purchaseFailed": "无法打开结账页面，请重试。"
+    "purchaseFailed": "无法打开结账页面，请重试。",
+    "iapCheckoutSubtitle": "通过 App Store / Google Play 购买",
+    "restorePurchase": "恢复购买",
+    "iapVerificationFailed": "购买验证失败，请尝试恢复。",
+    "iapOwnershipMismatch": "购买归属校验未通过，请重新购买。",
+    "iapAlreadyConsumed": "该购买已被使用。",
+    "iapProductUnavailable": "该商品暂不可购买。",
+    "iapRestoreNothing": "未发现可恢复的购买。",
+    "iapPurchaseCancelHint": "购买已取消，您可以稍后恢复。",
+    "membershipLabel": "会员",
+    "@membershipActive": {
+        "description": "会员已开通标签，与权益 key 及计费类型一同展示。"
+    },
+    "membershipActive": "已开通",
+    "membershipNone": "暂无会员"
 }

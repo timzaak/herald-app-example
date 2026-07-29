@@ -10,7 +10,7 @@ flutter test integration_test/<file>_test.dart -d <device-id>
 ```
 
 Web 目标需配合 ChromeDriver 与 `flutter drive`，详见
-[t-tool integration-testing 指南](https://github.com/timzaak/skills/blob/main/guides/flutter/integration-testing.md)。
+t-tool `guides/flutter/integration-testing.md`。
 
 ## Finder 规则
 

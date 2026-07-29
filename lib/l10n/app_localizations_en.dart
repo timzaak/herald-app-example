@@ -380,4 +380,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get purchaseFailed => 'Could not open checkout. Please try again.';
+
+  @override
+  String get iapCheckoutSubtitle => 'Buy via App Store / Google Play';
+
+  @override
+  String get restorePurchase => 'Restore purchases';
+
+  @override
+  String get iapVerificationFailed =>
+      'Purchase verification failed. Try restoring.';
+
+  @override
+  String get iapOwnershipMismatch =>
+      'Purchase ownership check failed. Please repurchase.';
+
+  @override
+  String get iapAlreadyConsumed => 'This purchase has already been used.';
+
+  @override
+  String get iapProductUnavailable => 'This product is currently unavailable.';
+
+  @override
+  String get iapRestoreNothing => 'No restorable purchases found.';
+
+  @override
+  String get iapPurchaseCancelHint =>
+      'Purchase canceled. You can restore later.';
+
+  @override
+  String get membershipLabel => 'Membership';
+
+  @override
+  String get membershipActive => 'Active';
+
+  @override
+  String get membershipNone => 'No active membership';
 }

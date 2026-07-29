@@ -16,15 +16,7 @@ void main() {
   patrolTest('app 启动后未登录用户进入登录页', ($) async {
     await $.pumpWidgetAndSettle(const ProviderScope(child: MyApp()));
 
-    expect(
-      $(#loginEmailField),
-      findsOneWidget,
-      reason: '未登录用户应被路由守卫重定向到登录页',
-    );
-    expect(
-      $(#loginSubmitButton),
-      findsOneWidget,
-      reason: '登录页应提供登录提交按钮',
-    );
+    expect($(#loginEmailField), findsOneWidget, reason: '未登录用户应被路由守卫重定向到登录页');
+    expect($(#loginSubmitButton), findsOneWidget, reason: '登录页应提供登录提交按钮');
   });
 }
