@@ -52,7 +52,7 @@ class IapReceiptResult {
   /// Present on success.
   final String? entitlementKey;
 
-  /// `'recurring'` / `'one_time'`; null on idempotent-hit.
+  /// `'recurring'` / `'one_time'` / `'non_renewing'`; null on idempotent-hit.
   final String? billingType;
 
   /// Only ever `'verification_failed'` on the 200 channel. Other reasons come

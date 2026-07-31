@@ -223,6 +223,8 @@ PurchaseOption _option({
   String? externalProductId,
   String billingType = 'one_time',
   bool alreadyOwned = false,
+  int? points,
+  bool hasTopupGrant = false,
 }) {
   return PurchaseOption(
     mappingId: mappingId,
@@ -232,6 +234,8 @@ PurchaseOption _option({
     alreadyOwned: alreadyOwned,
     billingType: billingType,
     externalProductId: externalProductId,
+    points: points,
+    hasTopupGrant: hasTopupGrant,
   );
 }
 
@@ -418,8 +422,7 @@ void main() {
         expect(
           googlePack.option.alreadyOwned,
           isTrue,
-          reason:
-              'iapProductsProvider must NOT filter on alreadyOwned',
+          reason: 'iapProductsProvider must NOT filter on alreadyOwned',
         );
         // each IapProduct carries the store ProductDetails.
         expect(googlePack.storeProduct.id, 'com.example.points1000');
@@ -502,6 +505,8 @@ void main() {
             paymentProvider: 'apple',
             externalProductId: 'com.example.points1000',
             billingType: 'one_time',
+            points: 1000,
+            hasTopupGrant: true,
           ),
           'com.example.points1000',
         );
@@ -589,6 +594,105 @@ void main() {
           'com.example.pro.monthly',
         );
         expect(harness.iap.buyConsumableCalls, isEmpty);
+      },
+    );
+
+    test(
+      'points-less one_time buyout → buyNonConsumable so it stays restorable',
+      () async {
+        final product = _iapProduct(
+          _option(
+            mappingId: 'mapping-buyout',
+            paymentProvider: 'google',
+            externalProductId: 'com.example.pro.lifetime',
+          ),
+          'com.example.pro.lifetime',
+        );
+        final harness = _container(userId: 'u-123');
+        addTearDown(harness.container.dispose);
+
+        await harness.container.read(iapPurchaseProvider.notifier).buy(product);
+
+        expect(harness.iap.buyNonConsumableCalls, hasLength(1));
+        expect(harness.iap.buyConsumableCalls, isEmpty);
+      },
+    );
+
+    test(
+      'non_renewing billingType → buyNonConsumable subscription path',
+      () async {
+        final product = _iapProduct(
+          _option(
+            mappingId: 'mapping-fixed-term',
+            paymentProvider: 'apple',
+            externalProductId: 'com.example.pro.30days',
+            billingType: 'non_renewing',
+          ),
+          'com.example.pro.30days',
+        );
+        final harness = _container(userId: 'u-123');
+        addTearDown(harness.container.dispose);
+
+        await harness.container.read(iapPurchaseProvider.notifier).buy(product);
+
+        expect(harness.iap.buyNonConsumableCalls, hasLength(1));
+        expect(harness.iap.buyConsumableCalls, isEmpty);
+      },
+    );
+
+    test(
+      'already-owned buyout → fail closed before opening a store purchase',
+      () async {
+        final product = _iapProduct(
+          _option(
+            mappingId: 'mapping-owned',
+            paymentProvider: 'apple',
+            externalProductId: 'com.example.pro.lifetime',
+            alreadyOwned: true,
+          ),
+          'com.example.pro.lifetime',
+        );
+        final harness = _container(userId: 'u-123');
+        addTearDown(harness.container.dispose);
+
+        await harness.container.read(iapPurchaseProvider.notifier).buy(product);
+
+        expect(harness.iap.buyConsumableCalls, isEmpty);
+        expect(harness.iap.buyNonConsumableCalls, isEmpty);
+        final state = harness.container.read(iapPurchaseProvider);
+        expect(state, isA<IapPurchaseFailed>());
+        expect(
+          (state as IapPurchaseFailed).reason,
+          IapFailureReason.productUnavailable,
+        );
+      },
+    );
+
+    test(
+      'unknown billingType → fail closed instead of consuming by default',
+      () async {
+        final product = _iapProduct(
+          _option(
+            mappingId: 'mapping-future',
+            paymentProvider: 'google',
+            externalProductId: 'com.example.future',
+            billingType: 'future_model',
+          ),
+          'com.example.future',
+        );
+        final harness = _container(userId: 'u-123');
+        addTearDown(harness.container.dispose);
+
+        await harness.container.read(iapPurchaseProvider.notifier).buy(product);
+
+        expect(harness.iap.buyConsumableCalls, isEmpty);
+        expect(harness.iap.buyNonConsumableCalls, isEmpty);
+        final state = harness.container.read(iapPurchaseProvider);
+        expect(state, isA<IapPurchaseFailed>());
+        expect(
+          (state as IapPurchaseFailed).reason,
+          IapFailureReason.productUnavailable,
+        );
       },
     );
 

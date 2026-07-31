@@ -13,7 +13,7 @@ class MembershipStatus {
   /// e.g. `'pro_monthly'`.
   final String entitlementKey;
 
-  /// `'recurring'` / `'one_time'`.
+  /// `'recurring'` / `'one_time'` / `'non_renewing'`.
   final String billingType;
 }
 

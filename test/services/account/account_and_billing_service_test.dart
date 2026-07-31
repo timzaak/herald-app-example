@@ -76,7 +76,15 @@ void main() {
             'paymentProvider': 'stripe',
             'enabled': true,
             'alreadyOwned': false,
-            'pointsPerPeriod': 1000,
+            'pointRules': [
+              {
+                'triggerSources': ['topup'],
+                'grantMode': 'fixed',
+                'pointsAmount': 1000,
+                'enabled': true,
+                'displayOrder': 0,
+              },
+            ],
             'amount': 499,
             'currency': 'USD',
             'billingType': 'one_time',
@@ -124,4 +132,78 @@ void main() {
       throwsA(isA<BillingConfigurationException>()),
     );
   });
+
+  test(
+    'purchase options classify Herald pay models without unsafe fallback',
+    () async {
+      final adapter = _ScriptedAdapter([
+        {
+          'items': [
+            {
+              'mappingId': 'points',
+              'paymentProvider': 'apple',
+              'enabled': true,
+              'alreadyOwned': false,
+              'billingType': 'one_time',
+              'pointRules': [
+                {
+                  'triggerSources': ['topup'],
+                  'grantMode': 'fixed',
+                  'pointsAmount': 100,
+                  'enabled': true,
+                  'displayOrder': 0,
+                },
+              ],
+            },
+            {
+              'mappingId': 'buyout',
+              'paymentProvider': 'google',
+              'enabled': true,
+              'alreadyOwned': true,
+              'billingType': 'one_time',
+            },
+            {
+              'mappingId': 'fixed-term',
+              'paymentProvider': 'google',
+              'enabled': true,
+              'alreadyOwned': false,
+              'billingType': 'non_renewing',
+            },
+            {
+              'mappingId': 'unknown',
+              'paymentProvider': 'apple',
+              'enabled': true,
+              'alreadyOwned': false,
+              'billingType': 'future_model',
+            },
+            {
+              'mappingId': 'missing-type',
+              'paymentProvider': 'apple',
+              'enabled': true,
+              'alreadyOwned': false,
+            },
+          ],
+        },
+      ]);
+      final service = HeraldBillingService(
+        _dio(adapter),
+        realmId: 'realm-1',
+        clientAppUuid: 'client-uuid',
+      );
+
+      final options = await service.listPurchaseOptions();
+
+      expect(options[0].isConsumable, isTrue);
+      expect(options[0].purchasable, isTrue);
+      expect(options[1].isNonConsumable, isTrue);
+      expect(options[1].purchasable, isFalse);
+      expect(options[2].isNonConsumable, isTrue);
+      expect(options[2].purchasable, isTrue);
+      expect(options[3].isConsumable, isFalse);
+      expect(options[3].isNonConsumable, isFalse);
+      expect(options[3].purchasable, isFalse);
+      expect(options[4].billingType, isNull);
+      expect(options[4].purchasable, isFalse);
+    },
+  );
 }

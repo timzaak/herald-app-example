@@ -46,6 +46,7 @@ PurchaseOption _option({
   String billingType = 'one_time',
   bool alreadyOwned = false,
   int? points,
+  bool hasTopupGrant = false,
 }) {
   return PurchaseOption(
     mappingId: mappingId,
@@ -56,6 +57,7 @@ PurchaseOption _option({
     billingType: billingType,
     externalProductId: externalProductId,
     points: points,
+    hasTopupGrant: hasTopupGrant,
   );
 }
 
@@ -269,10 +271,10 @@ void main() {
   });
 
   testWidgets(
-    'an alreadyOwned=true google row still renders (widget-layer proof)',
+    'already-owned buyout stays mapped for restore but cannot be repurchased',
     (tester) async {
-      // WHY: iapProductsProvider must NOT filter on alreadyOwned; the widget
-      // assertion guards against a regression that drops it.
+      // WHY: restore needs the mapping to remain in the product list, while a
+      // new store purchase must be blocked for a permanently owned product.
       final iap = FakeIapService()
         ..queryProductsResult[googleStoreId] = FakeProductDetails(
           id: googleStoreId,
@@ -303,6 +305,18 @@ void main() {
         find.byKey(const ValueKey('iap-product-$googleStoreId-card')),
         findsOneWidget,
         reason: 'alreadyOwned must NOT be filtered',
+      );
+      final buttonFinder = find.byKey(
+        const ValueKey('iap-product-$googleStoreId-buy-button'),
+      );
+      expect(tester.widget<FilledButton>(buttonFinder).onPressed, isNull);
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      expect(
+        find.descendant(
+          of: buttonFinder,
+          matching: find.text(l10n.alreadyOwned),
+        ),
+        findsOneWidget,
       );
     },
   );
@@ -355,50 +369,45 @@ void main() {
     },
   );
 
-  testWidgets(
-    'userId null → buy* NOT called (fail-closed); state stays put',
-    (tester) async {
-      // WHY: an empty/missing ownership binding must never be injected; the
-      // notifier blocks the purchase. The buy button is also disabled when
-      // userIdAsync has no bindable id.
-      final iap = FakeIapService()
-        ..queryProductsResult[appleStoreId] = FakeProductDetails(
-          id: appleStoreId,
-          title: 'Pro Monthly',
-        );
-      await _pumpPurchasePage(
-        tester,
-        iap: iap,
-        billing: _FakeBillingService(),
-        extra: [
-          iapProductsProvider.overrideWith(
-            (ref) async => [
-              _iapProduct(
-                _option(
-                  mappingId: 'map-apple-monthly',
-                  paymentProvider: 'apple',
-                  externalProductId: appleStoreId,
-                ),
-                iap.queryProductsResult[appleStoreId]!,
+  testWidgets('userId null → buy* NOT called (fail-closed); state stays put', (
+    tester,
+  ) async {
+    // WHY: an empty/missing ownership binding must never be injected; the
+    // notifier blocks the purchase. The buy button is also disabled when
+    // userIdAsync has no bindable id.
+    final iap = FakeIapService()
+      ..queryProductsResult[appleStoreId] = FakeProductDetails(
+        id: appleStoreId,
+        title: 'Pro Monthly',
+      );
+    await _pumpPurchasePage(
+      tester,
+      iap: iap,
+      billing: _FakeBillingService(),
+      extra: [
+        iapProductsProvider.overrideWith(
+          (ref) async => [
+            _iapProduct(
+              _option(
+                mappingId: 'map-apple-monthly',
+                paymentProvider: 'apple',
+                externalProductId: appleStoreId,
               ),
-            ],
-          ),
-        ],
-      );
-      // Default currentUserIdResult is null → button disabled, no buy* call.
-      expect(iap.buyNonConsumableCalls, isEmpty);
-      expect(iap.buyConsumableCalls, isEmpty);
-      // The buy button is present but disabled (onPressed == null).
-      final buyButton = tester.widget<FilledButton>(
-        find.byKey(const ValueKey('iap-product-$appleStoreId-buy-button')),
-      );
-      expect(
-        buyButton.onPressed,
-        isNull,
-        reason: 'disabled w/o userId',
-      );
-    },
-  );
+              iap.queryProductsResult[appleStoreId]!,
+            ),
+          ],
+        ),
+      ],
+    );
+    // Default currentUserIdResult is null → button disabled, no buy* call.
+    expect(iap.buyNonConsumableCalls, isEmpty);
+    expect(iap.buyConsumableCalls, isEmpty);
+    // The buy button is present but disabled (onPressed == null).
+    final buyButton = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('iap-product-$appleStoreId-buy-button')),
+    );
+    expect(buyButton.onPressed, isNull, reason: 'disabled w/o userId');
+  });
 
   testWidgets(
     'fulfilled → success toast + page popped (accountOverviewProvider invalidated)',
@@ -461,67 +470,64 @@ void main() {
     },
   );
 
-  testWidgets(
-    'credential-loss: submit failure → completePurchase NOT called; '
-    'restore button still reachable',
-    (tester) async {
-      // WHY: on a receipt-submit failure the credential must be retained for
-      // replay (NEVER completePurchase). The restore entry must remain
-      // reachable so the user can retry.
-      final iap = FakeIapService()
-        ..queryProductsResult[googleStoreId] = FakeProductDetails(
-          id: googleStoreId,
-          title: '1000 points',
-        );
-      final billing = _FakeBillingService()
-        ..submitResult = null
-        ..submitError = _dio500();
-      await _pumpPurchasePage(
-        tester,
-        iap: iap,
-        billing: billing,
-        userId: 'u-123',
-        extra: [
-          iapProductsProvider.overrideWith(
-            (ref) async => [
-              _iapProduct(
-                _option(
-                  mappingId: 'map-google-pack',
-                  paymentProvider: 'google',
-                  externalProductId: googleStoreId,
-                ),
-                iap.queryProductsResult[googleStoreId]!,
+  testWidgets('credential-loss: submit failure → completePurchase NOT called; '
+      'restore button still reachable', (tester) async {
+    // WHY: on a receipt-submit failure the credential must be retained for
+    // replay (NEVER completePurchase). The restore entry must remain
+    // reachable so the user can retry.
+    final iap = FakeIapService()
+      ..queryProductsResult[googleStoreId] = FakeProductDetails(
+        id: googleStoreId,
+        title: '1000 points',
+      );
+    final billing = _FakeBillingService()
+      ..submitResult = null
+      ..submitError = _dio500();
+    await _pumpPurchasePage(
+      tester,
+      iap: iap,
+      billing: billing,
+      userId: 'u-123',
+      extra: [
+        iapProductsProvider.overrideWith(
+          (ref) async => [
+            _iapProduct(
+              _option(
+                mappingId: 'map-google-pack',
+                paymentProvider: 'google',
+                externalProductId: googleStoreId,
               ),
-            ],
-          ),
-        ],
-      );
+              iap.queryProductsResult[googleStoreId]!,
+            ),
+          ],
+        ),
+      ],
+    );
 
-      await tester.tap(
-        find.byKey(const ValueKey('iap-product-$googleStoreId-buy-button')),
-      );
-      await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey('iap-product-$googleStoreId-buy-button')),
+    );
+    await tester.pump();
 
-      // Purchased event → submit throws DioException → retain (no complete).
-      iap.streamController.add([
-        _purchase(googleStoreId, status: PurchaseStatus.purchased),
-      ]);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+    // Purchased event → submit throws DioException → retain (no complete).
+    iap.streamController.add([
+      _purchase(googleStoreId, status: PurchaseStatus.purchased),
+    ]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
 
-      expect(
-        iap.completePurchaseCalls,
-        isEmpty,
-        reason: 'credential retained for replay — do NOT complete',
-      );
-      // Failure toast rendered (generic → paymentFailed).
-      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-      expect(find.text(l10n.paymentFailed), findsWidgets);
-      // Restore entry is still reachable.
-      expect(find.byKey(const ValueKey('iap-restore-button')), findsOneWidget);
-      await drainSmartDialogToasts(tester);
-    },
-  );
+    expect(
+      iap.completePurchaseCalls,
+      isEmpty,
+      reason: 'credential retained for replay — do NOT complete',
+    );
+    // Failure toast rendered (generic → paymentFailed).
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.text(l10n.paymentFailed), findsWidgets);
+    // Restore entry is still reachable.
+    expect(find.byKey(const ValueKey('iap-restore-button')), findsOneWidget);
+    await drainSmartDialogToasts(tester);
+  });
 
   testWidgets('cancel-silent: canceled event → no failure toast', (
     tester,

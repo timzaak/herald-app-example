@@ -173,11 +173,18 @@ class PurchasePage extends HookConsumerWidget {
                                   'iap-product-${product.storeId}-buy-button',
                                 ),
                                 onPressed:
-                                    (canBuy && !isPurchasing && !isRestoring)
+                                    (option.purchasable &&
+                                        canBuy &&
+                                        !isPurchasing &&
+                                        !isRestoring)
                                     ? () => purchase(product)
                                     : null,
                                 child: Text(
-                                  thisBusy ? l10n.openingCheckout : l10n.buyNow,
+                                  option.alreadyOwned
+                                      ? l10n.alreadyOwned
+                                      : thisBusy
+                                      ? l10n.openingCheckout
+                                      : l10n.buyNow,
                                 ),
                               ),
                             ),

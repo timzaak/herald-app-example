@@ -30,10 +30,9 @@ final currentUserIdProvider = FutureProvider<String?>((ref) async {
 ///
 /// - Display price comes from `storeProduct.price` (the store-resolved
 ///   `ProductDetails`); the purchase page reads it off each [IapProduct].
-/// - Intentionally does NOT consult `option.alreadyOwned` — backend
-///   `alreadyOwned` only applies to one_time+role combos; IAP subscription /
-///   points-pack semantics differ; authoritative ownership is the fulfillment
-///   result.
+/// - Keeps `option.alreadyOwned` rows so restored transactions can still
+///   resolve their mapping. The purchase page and notifier block a new buy for
+///   those rows.
 /// - Options whose store `ProductDetails` is missing (mismatch between backend
 ///   `externalProductId` and App Store Connect / Play Console ids) are silently
 ///   skipped — the list is just shorter.
@@ -132,8 +131,10 @@ class IapPurchaseNotifier extends Notifier<IapPurchaseState> {
   ///   `buy*` NOT called (fail-closed — never inject an empty binding).
   /// - [IapService.canBindUserId] false (iOS non-UUID) →
   ///   [IapPurchaseFailed]([IapFailureReason.ownershipMismatch]); `buy*` NOT called.
-  /// - `billingType == 'recurring'` → [IapService.buyNonConsumable] (subscription
-  ///   = non-consumable); else → [IapService.buyConsumable] (points pack).
+  /// - one-time with points → [IapService.buyConsumable].
+  /// - points-less one-time buyout / recurring / non-renewing →
+  ///   [IapService.buyNonConsumable].
+  /// - already-owned or unknown billing type → fail closed; `buy*` NOT called.
   ///
   /// Does NOT flip to fulfilled here — the `purchaseStream` listener drives
   /// fulfillment. The `buy*` call returns once the system purchase sheet is
@@ -141,6 +142,11 @@ class IapPurchaseNotifier extends Notifier<IapPurchaseState> {
   Future<void> buy(IapProduct product) async {
     lastRestoreWasEmpty = false;
     state = const IapPurchasePurchasing();
+
+    if (!product.option.purchasable) {
+      state = const IapPurchaseFailed(IapFailureReason.productUnavailable);
+      return;
+    }
 
     final userId = await ref.read(currentUserIdProvider.future);
     if (userId == null) {
@@ -157,13 +163,17 @@ class IapPurchaseNotifier extends Notifier<IapPurchaseState> {
     }
 
     try {
-      if (product.option.billingType == 'recurring') {
+      if (product.option.isConsumable) {
+        await iap.buyConsumable(product: product.storeProduct, userId: userId);
+      } else if (product.option.isNonConsumable) {
         await iap.buyNonConsumable(
           product: product.storeProduct,
           userId: userId,
         );
       } else {
-        await iap.buyConsumable(product: product.storeProduct, userId: userId);
+        // `purchasable` already rejects this branch. Keep the defensive
+        // backstop local to the purchase boundary.
+        state = const IapPurchaseFailed(IapFailureReason.productUnavailable);
       }
       // State stays Purchasing — the stream listener advances to fulfilled /
       // failed / idle when the platform reports the transaction outcome.

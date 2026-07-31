@@ -11,6 +11,7 @@ class PurchaseOption {
     required this.enabled,
     required this.alreadyOwned,
     this.points,
+    this.hasTopupGrant = false,
     this.amount,
     this.currency,
     this.billingType,
@@ -24,6 +25,7 @@ class PurchaseOption {
   final bool enabled;
   final bool alreadyOwned;
   final int? points;
+  final bool hasTopupGrant;
   final int? amount;
   final String? currency;
   final String? billingType;
@@ -41,8 +43,24 @@ class PurchaseOption {
   /// this model is shared with Stripe/Creem rows where it is absent.
   final String? externalProductId;
 
+  /// Herald and the stores agree that only a points-granting one-time product
+  /// is consumable. A points-less one-time product is a restorable buyout.
+  ///
+  /// Consumability is derived from the backend `pointRules`: any enabled rule
+  /// with the `topup` trigger (fixed OR quota) makes this a consumable topup
+  /// pack. A one-time product with no topup rules is a non-consumable buyout.
+  bool get isConsumable => billingType == 'one_time' && hasTopupGrant;
+
+  bool get isNonConsumable =>
+      billingType == 'recurring' ||
+      billingType == 'non_renewing' ||
+      (billingType == 'one_time' && !isConsumable);
+
   bool get purchasable =>
-      enabled && !alreadyOwned && paymentProvider.isNotEmpty;
+      enabled &&
+      !alreadyOwned &&
+      paymentProvider.isNotEmpty &&
+      (isConsumable || isNonConsumable);
 }
 
 class PaymentAttempt {
@@ -233,6 +251,7 @@ class HeraldBillingService implements BillingService {
   }
 
   static PurchaseOption _purchaseOption(Map<String, dynamic> json) {
+    final pointRules = _parsePointRules(json['pointRules']);
     return PurchaseOption(
       mappingId: _string(json, 'mappingId'),
       displayName:
@@ -242,7 +261,8 @@ class HeraldBillingService implements BillingService {
       paymentProvider: json['paymentProvider'] as String? ?? '',
       enabled: json['enabled'] == true,
       alreadyOwned: json['alreadyOwned'] == true,
-      points: _optionalInt(json['pointsPerPeriod']),
+      points: pointRules.displayPoints,
+      hasTopupGrant: pointRules.hasTopupGrant,
       amount: _optionalInt(json['amount']),
       currency: json['currency'] as String?,
       billingType: json['billingType'] as String?,
@@ -261,6 +281,47 @@ class HeraldBillingService implements BillingService {
     if (value is int) return value;
     if (value is num) return value.toInt();
     return null;
+  }
+
+  /// Projects the backend `pointRules` array into the two client-side
+  /// derivations:
+  ///
+  /// - [ParsedPointRules.hasTopupGrant]: any enabled rule carries the `topup`
+  ///   trigger. This drives [PurchaseOption.isConsumable] — a one-time product
+  ///   with a topup rule (fixed OR quota) is a consumable pack; without one it
+  ///   is a non-consumable buyout.
+  /// - [ParsedPointRules.displayPoints]: the `pointsAmount` of the
+  ///   lowest-`displayOrder` enabled `fixed` topup rule, surfaced as the
+  ///   "N points" badge on the purchase tile. Quota grants carry no scalar to
+  ///   show, so a quota-only topup pack is consumable but shows no badge.
+  ///
+  /// `topup` is the only trigger legal for a `one_time` mapping on the backend
+  /// (see cas-2 `distribution_rules.rs`), so trigger filtering is belt-and-
+  /// suspenders against a misconfigured rule set rather than a live branch.
+  static ({bool hasTopupGrant, int? displayPoints}) _parsePointRules(
+    Object? raw,
+  ) {
+    if (raw is! List) return (hasTopupGrant: false, displayPoints: null);
+
+    var hasTopupGrant = false;
+    int? displayPoints;
+    var displayOrder = 0x7FFFFFFF;
+    for (final entry in raw) {
+      if (entry is! Map) continue;
+      if (entry['enabled'] != true) continue;
+      final triggers = entry['triggerSources'];
+      if (triggers is! List || !triggers.contains('topup')) continue;
+      hasTopupGrant = true;
+      if (entry['grantMode'] != 'fixed') continue;
+      final amount = _optionalInt(entry['pointsAmount']);
+      if (amount == null || amount <= 0) continue;
+      final order = _optionalInt(entry['displayOrder']) ?? 0;
+      if (order < displayOrder) {
+        displayPoints = amount;
+        displayOrder = order;
+      }
+    }
+    return (hasTopupGrant: hasTopupGrant, displayPoints: displayPoints);
   }
 }
 

@@ -14,8 +14,8 @@ abstract class IapService {
   /// result and skips unmatched backend options.
   Future<Set<ProductDetails>> queryProducts(Set<String> storeIds);
 
-  /// Initiates a non-consumable purchase (recurring subscription). The Herald
-  /// `userId` is injected via the platform binding
+  /// Initiates a restorable purchase (buyout, recurring subscription, or
+  /// non-renewing subscription). The Herald `userId` is injected via the platform binding
   /// (`applicationUserName` = the iOS `appAccountToken` carrier path).
   ///
   /// Throws [IapOwnershipBindingException] if [IapOwnershipBinding.canBind]
@@ -26,7 +26,7 @@ abstract class IapService {
     required String userId,
   });
 
-  /// Initiates a consumable purchase (one-time points pack). See
+  /// Initiates a consumable purchase (points-bearing one-time pack). See
   /// [buyNonConsumable] for the ownership-binding contract.
   Future<void> buyConsumable({
     required ProductDetails product,

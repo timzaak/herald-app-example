@@ -45,42 +45,39 @@ Future<ProviderContainerShared> _pumpMyPage(
 typedef ProviderContainerShared = ProviderContainer;
 
 void main() {
-  testWidgets(
-    'membership == null (default): renders membershipNone + the IAP '
-    'checkout subtitle; NO stripe/creem subtitle text',
-    (tester) async {
-      // WHY: getOverview() leaves membership null (no backend entitlement
-      // field — evidence limitation). The null branch must surface the
-      // "no membership" text + a purchase entry whose subtitle is the IAP
-      // text (iapCheckoutSubtitle), NOT the legacy stripe/creem text
-      // (the subtitle was repurposed).
-      await _pumpMyPage(
-        tester,
-        overview: const AccountOverview(
-          email: 'user@example.com',
-          nickname: 'User',
-          points: 0,
-          membership: null,
-        ),
-      );
+  testWidgets('membership == null (default): renders membershipNone + the IAP '
+      'checkout subtitle; NO stripe/creem subtitle text', (tester) async {
+    // WHY: getOverview() leaves membership null (no backend entitlement
+    // field — evidence limitation). The null branch must surface the
+    // "no membership" text + a purchase entry whose subtitle is the IAP
+    // text (iapCheckoutSubtitle), NOT the legacy stripe/creem text
+    // (the subtitle was repurposed).
+    await _pumpMyPage(
+      tester,
+      overview: const AccountOverview(
+        email: 'user@example.com',
+        nickname: 'User',
+        points: 0,
+        membership: null,
+      ),
+    );
 
-      // Membership row renders the null-branch text.
-      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-      expect(find.text(l10n.membershipNone), findsOneWidget);
-      // The membership row has the membershipStatus ValueKey.
-      expect(find.byKey(const ValueKey('membershipStatus')), findsOneWidget);
-      // The purchase entry tile is present with the IAP subtitle.
-      expect(find.byKey(const ValueKey('purchasePointsTile')), findsOneWidget);
-      expect(find.text(l10n.iapCheckoutSubtitle), findsOneWidget);
-      // Widget-layer proof: the legacy stripe/creem subtitle text is
-      // NOT shown on the purchase tile.
-      expect(
-        find.text(l10n.stripeCreemCheckout),
-        findsNothing,
-        reason: 'the IAP subtitle replaced the stripe/creem one',
-      );
-    },
-  );
+    // Membership row renders the null-branch text.
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.text(l10n.membershipNone), findsOneWidget);
+    // The membership row has the membershipStatus ValueKey.
+    expect(find.byKey(const ValueKey('membershipStatus')), findsOneWidget);
+    // The purchase entry tile is present with the IAP subtitle.
+    expect(find.byKey(const ValueKey('purchasePointsTile')), findsOneWidget);
+    expect(find.text(l10n.iapCheckoutSubtitle), findsOneWidget);
+    // Widget-layer proof: the legacy stripe/creem subtitle text is
+    // NOT shown on the purchase tile.
+    expect(
+      find.text(l10n.stripeCreemCheckout),
+      findsNothing,
+      reason: 'the IAP subtitle replaced the stripe/creem one',
+    );
+  });
 
   testWidgets(
     'membership != null: renders membershipStatus row with the entitlementKey + '
