@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:logging/logging.dart';
+import 'package:upgrader/upgrader.dart';
 import './routes.dart';
 import 'l10n/app_localizations.dart';
 
@@ -85,7 +86,7 @@ void main() {
   );
 }
 
-initLogger() {
+void initLogger() {
   if (!kReleaseMode) {
     Logger.root.level = Level.FINE;
     DioUtil.getInstance().openLog();
@@ -94,7 +95,7 @@ initLogger() {
   }
 
   Logger.root.onRecord.listen((record) {
-    print('${record.level.name}: ${record.time}: ${record.message}');
+    debugPrint('${record.level.name}: ${record.time}: ${record.message}');
   });
   Logger.root.fine('Starting app');
 }
@@ -128,6 +129,11 @@ class MyApp extends StatelessWidget {
             ),
           ),
           routerConfig: appRouter,
+          // UpgradeAlert 包裹 Navigator 子树以驱动应用内升级弹窗。
+          // 复用 VersionService.upgrader 暴露的 Upgrader.sharedInstance，
+          // 使启动时的 checkVersion() 预热结果与 widget 共享同一状态。
+          builder: (context, child) =>
+              UpgradeAlert(upgrader: VersionService().upgrader, child: child),
         );
       },
     );

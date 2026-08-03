@@ -80,7 +80,7 @@ class _AuthStateRouterRefreshNotifier extends ChangeNotifier {
 /// The Herald app router. `late final` so the [refreshListenable] can be wired
 /// to [heraldContainer] (which is itself a top-level final initialized before
 /// the first dereference at `runApp(routerConfig: appRouter)`).
-late final GoRouter appRouter = GoRouter(
+final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/index',
   observers: [FlutterSmartDialog.observer],

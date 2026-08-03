@@ -51,11 +51,10 @@ dependencies:
   intl: any
   shared_preferences: ^2.5.5
   pretty_dio_logger: ^1.4.0
-  mobile_scanner: ^7.2.0
+  mobile_scanner: ^7.4.0
   chewie: ^1.14.1
   video_player: ^2.13.0
   cloudflare_turnstile: ^3.7.2
-  flutter_upgrade_version: ^1.1.9
   package_info_plus: ^10.2.0
   webview_flutter: ^4.14.1
   url_launcher: ^6.3.2
@@ -63,6 +62,8 @@ dependencies:
   openapi_generator_annotations: ^7.0.0
   in_app_purchase: ^3.3.0
   uuid: ^4.6.0
+  flutter_markdown: ^0.7.7+1
+  upgrader: ^13.6.0
 
 dev_dependencies:
   flutter_test:
@@ -78,7 +79,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   mockito: ^5.4.4
   flutter_launcher_icons: ^0.14.3
-  patrol: ^4.6.1
+  patrol: 4.7.0 # pinned: 4.8.0 引入 Kotlin 编译回归（PatrolServer contracts 访问失败），见 AGENTS.md
   build_runner: ^2.4.0
   openapi_generator: ^7.0.0
 
@@ -91,6 +92,10 @@ patrol:
 
 dependency_overrides:
   flutter_inappwebview: 6.2.0-beta.3
+  # wakelock_plus 1.7.0 在 AGP 9 built-in Kotlin 下 Kotlin 源码不编译
+  #（sourceSets 未启用 kotlin 编译），回退到 1.6.1 以恢复构建。
+  # 待上游修复后移除此 override。见 AGENTS.md。
+  wakelock_plus: 1.6.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

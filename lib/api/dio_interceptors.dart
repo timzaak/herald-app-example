@@ -33,40 +33,40 @@ class DioInterceptors extends Interceptor {
   }
 
   @override
-  void onError(DioError err, ErrorInterceptorHandler handler) {
+  void onError(DioException err, ErrorInterceptorHandler handler) {
     // switch (err.type) {
     //   // 连接服务器超时
-    //   case DioErrorType.connectTimeout:
+    //   case DioExceptionType.connectTimeout:
     //     {
     //       // 根据自己的业务需求来设定该如何操作,可以是弹出框提示/或者做一些路由跳转处理
     //     }
     //     break;
     //   // 响应超时
-    //   case DioErrorType.receiveTimeout:
+    //   case DioExceptionType.receiveTimeout:
     //     {
     //       // 根据自己的业务需求来设定该如何操作,可以是弹出框提示/或者做一些路由跳转处理
     //     }
     //     break;
     //   // 发送超时
-    //   case DioErrorType.sendTimeout:
+    //   case DioExceptionType.sendTimeout:
     //     {
     //       // 根据自己的业务需求来设定该如何操作,可以是弹出框提示/或者做一些路由跳转处理
     //     }
     //     break;
     //   // 请求取消
-    //   case DioErrorType.cancel:
+    //   case DioExceptionType.cancel:
     //     {
     //       // 根据自己的业务需求来设定该如何操作,可以是弹出框提示/或者做一些路由跳转处理
     //     }
     //     break;
     //   // 404/503错误
-    //   case DioErrorType.response:
+    //   case DioExceptionType.response:
     //     {
     //       // 根据自己的业务需求来设定该如何操作,可以是弹出框提示/或者做一些路由跳转处理
     //     }
     //     break;
     //   // other 其他错误类型
-    //   case DioErrorType.other:
+    //   case DioExceptionType.other:
     //     {}
     //     break;
     // }

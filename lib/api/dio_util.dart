@@ -46,7 +46,7 @@ class DioUtil {
     );
   }
 
-  _init() {
+  void _init() {
     /// 初始化基本选项
     BaseOptions options = BaseOptions(
       baseUrl: Settings.heraldBaseUrl,

@@ -10,6 +10,7 @@ import '../../core/providers.dart';
 import '../../providers/account_providers.dart';
 import '../../providers/auth_providers.dart';
 import '../account/change_password_page.dart';
+import '../account/legal_agreement_page.dart';
 import '../billing/purchase_page.dart';
 
 class MyPage extends HookConsumerWidget {
@@ -89,15 +90,25 @@ class MyPage extends HookConsumerWidget {
 
     void viewUserAgreement(BuildContext context) {
       final l10n = AppLocalizations.of(context)!;
-      SmartDialog.showToast(
-        'Navigate to ${l10n.userAgreement} (Not Implemented)',
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute<void>(
+          builder: (_) => LegalAgreementPage(
+            agreementType: 'terms_of_service',
+            title: l10n.userAgreement,
+          ),
+        ),
       );
     }
 
     void viewPrivacyPolicy(BuildContext context) {
       final l10n = AppLocalizations.of(context)!;
-      SmartDialog.showToast(
-        'Navigate to ${l10n.privacyPolicy} (Not Implemented)',
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute<void>(
+          builder: (_) => LegalAgreementPage(
+            agreementType: 'privacy_policy',
+            title: l10n.privacyPolicy,
+          ),
+        ),
       );
     }
 

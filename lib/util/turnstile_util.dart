@@ -19,12 +19,12 @@ Future<String?> getTurnstileToken({String? siteKey}) async {
   try {
     final String? token = await turnstile.getToken();
     if (token != null && kDebugMode) {
-      print('Turnstile token: $token');
+      debugPrint('Turnstile token: $token');
     }
     return token;
   } on TurnstileException catch (e) {
     if (kDebugMode) {
-      print('Turnstile challenge failed: ${e.message}');
+      debugPrint('Turnstile challenge failed: ${e.message}');
     }
     return null;
   } finally {

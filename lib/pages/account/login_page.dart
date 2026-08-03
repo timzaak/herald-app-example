@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -37,9 +38,18 @@ class LoginPage extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final formKey = useMemoized(() => GlobalKey<FormState>());
-    final emailController = useTextEditingController(text: initialEmail);
+    // Debug-only convenience: pre-fill the demo account from the Herald README
+    // so manual sign-in during development doesn't require typing it every time.
+    // Release builds keep the empty defaults.
+    final emailController = useTextEditingController(
+      text: initialEmail.isEmpty && kDebugMode
+          ? 'admin@fornetcode.com'
+          : initialEmail,
+    );
     final codeController = useTextEditingController();
-    final passwordController = useTextEditingController();
+    final passwordController = useTextEditingController(
+      text: kDebugMode ? 'Herald@2026Admin' : '',
+    );
     final seconds = useState<int?>(null);
     final agreeDeal = useState<bool>(false);
     final loading = useState<bool>(false);
