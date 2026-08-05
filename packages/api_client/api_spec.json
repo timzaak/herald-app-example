@@ -1438,6 +1438,215 @@
           }
         }
       }
+    },
+    "/api/oauth/{realmId}/apple/native-login": {
+      "post": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "Apple native login.",
+        "description": "Verifies an Apple `identityToken` (from `ASAuthorizationAppleIDProvider`)\nserver-side and, depending on `downstreamState`, issues either a direct\nbrowser session (Bearer token family bound to `clientId`) or a downstream\nauthorization code for the Code+PKCE flow. Requires the realm to have an\nenabled Apple provider.",
+        "operationId": "apple_native_login",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppleNativeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Downstream-authorization-code mode: redirect URI returned for Code+PKCE exchange",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppleNativeCodeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (validation error or missing/invalid downstream state)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (identityToken signature/issuer/audience/expiry validation failed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Apple provider not configured or not enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Upstream service unavailable (Apple JWKS unreachable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/oauth/{realmId}/google/one-tap": {
+      "post": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "Google One Tap login.",
+        "description": "Verifies a Google One Tap (GIS) ID Token server-side and, depending on\n`downstreamState`, issues either a direct browser session (Bearer token\nfamily bound to `clientId`) or a downstream authorization code for the\nCode+PKCE flow. Requires the realm to have an enabled Google provider.",
+        "operationId": "google_one_tap",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OneTapRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Downstream-authorization-code mode: redirect URI returned for Code+PKCE exchange",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OneTapCodeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (validation error or missing/invalid downstream state)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (ID Token signature/issuer/audience/expiry validation failed, or email not verified)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Google provider not configured or not enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Upstream service unavailable (Google JWKS unreachable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public-config/{realmId}": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Get public configuration for a realm",
+        "description": "Returns publicly accessible configuration for the specified realm, including:\n- Registration settings (whether registration is allowed and if email verification is required)\n- List of enabled OAuth providers\n- Published white-label settings\n\nThis endpoint does not require authentication.",
+        "operationId": "get_public_config",
+        "parameters": [
+          {
+            "name": "realmId",
+            "in": "path",
+            "description": "Realm ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Public configuration retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicConfigResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2350,6 +2559,242 @@
           },
           "userId": {
             "type": "string"
+          }
+        }
+      },
+      "RegistrationConfig": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "requireEmailVerification"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "requireEmailVerification": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WhiteLabelBackgroundType": {
+        "type": "string",
+        "enum": [
+          "image",
+          "gradient"
+        ]
+      },
+      "AppleNativeCodeResponse": {
+        "type": "object",
+        "required": [
+          "redirectUri"
+        ],
+        "properties": {
+          "redirectUri": {
+            "type": "string",
+            "description": "Full redirect URI returned by `issue_downstream_authorization_code`,\nincluding `?code=ac_...&state=...` for the downstream Code+PKCE flow."
+          }
+        }
+      },
+      "AppleNativeRequest": {
+        "type": "object",
+        "required": [
+          "identityToken",
+          "clientId"
+        ],
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "description": "Herald ClientApp `client_id` that the direct-session token family binds to."
+          },
+          "downstreamState": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional downstream authorization transaction identifier (OAuth `state`).\nPresence selects the downstream-authorization-code branch; absence the\ndirect-session branch."
+          },
+          "identityToken": {
+            "type": "string",
+            "description": "Apple-issued identity token (JWT) from `ASAuthorizationAppleIDProvider`."
+          }
+        }
+      },
+      "PublicWhiteLabelConfig": {
+        "type": "object",
+        "properties": {
+          "accentColor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "background": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WhiteLabelBackground"
+              }
+            ]
+          },
+          "brandName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "faviconUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "footerText": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "loginSubtitle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "loginTitle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "logoUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "registerSubtitle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "registerTitle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "OneTapRequest": {
+        "type": "object",
+        "required": [
+          "credential",
+          "clientId"
+        ],
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "description": "Herald ClientApp `client_id` that the direct-session token family binds to."
+          },
+          "credential": {
+            "type": "string",
+            "description": "Google One Tap issued ID Token (JWT), from the GIS `credential` callback."
+          },
+          "downstreamState": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional downstream authorization transaction identifier (OAuth `state`).\nPresence selects the downstream-authorization-code branch; absence the\ndirect-session branch."
+          }
+        }
+      },
+      "PublicConfigResponse": {
+        "type": "object",
+        "required": [
+          "realmName",
+          "registration",
+          "oauthProviders",
+          "whiteLabel"
+        ],
+        "properties": {
+          "oauthProviders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OAuthProviderInfo"
+            }
+          },
+          "realmDescription": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "realmName": {
+            "type": "string"
+          },
+          "registration": {
+            "$ref": "#/components/schemas/RegistrationConfig"
+          },
+          "whiteLabel": {
+            "$ref": "#/components/schemas/PublicWhiteLabelConfig"
+          }
+        }
+      },
+      "WhiteLabelBackground": {
+        "type": "object",
+        "required": [
+          "type",
+          "value"
+        ],
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/WhiteLabelBackgroundType"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "OAuthProviderInfo": {
+        "type": "object",
+        "required": [
+          "name",
+          "displayName",
+          "enabled"
+        ],
+        "properties": {
+          "clientId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Provider `client_id` (e.g. Google One Tap / GIS initialization). Not a\nsecret — the redirect-style `/login` flow already surfaces it in the\nauth URL. `client_secret` is never exposed here. Omitted from the\nserialized payload when absent to keep the response stable for existing\nconsumers that only read `name`/`displayName`/`enabled`."
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "OneTapCodeResponse": {
+        "type": "object",
+        "required": [
+          "redirectUri"
+        ],
+        "properties": {
+          "redirectUri": {
+            "type": "string",
+            "description": "Full redirect URI returned by `issue_downstream_authorization_code`,\nincluding `?code=ac_...&state=...` for the downstream Code+PKCE flow."
           }
         }
       }

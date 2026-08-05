@@ -299,6 +299,36 @@ class FakeHeraldAuthRepository implements HeraldAuthRepository {
     return _asFuture(verifyTotpResult);
   }
 
+  /// Recorded `identityToken` submitted to `loginWithApple`.
+  String? lastAppleIdentityToken;
+
+  /// Result returned by `loginWithApple`. Defaults to a generic network failure
+  /// so tests that don't set it surface a visible error rather than a session.
+  FutureOrResult<AuthResult> loginWithAppleResult = FutureOrResult.value(
+    const AuthFailure(AuthError(AuthErrorKind.network)),
+  );
+
+  @override
+  Future<AuthResult> loginWithApple({required String identityToken}) async {
+    lastAppleIdentityToken = identityToken;
+    return _asFuture(loginWithAppleResult);
+  }
+
+  /// Recorded `credential` submitted to `loginWithGoogleOneTap`.
+  String? lastGoogleCredential;
+
+  /// Result returned by `loginWithGoogleOneTap`. Defaults to a generic network
+  /// failure for the same reason as [loginWithAppleResult].
+  FutureOrResult<AuthResult> loginWithGoogleOneTapResult = FutureOrResult.value(
+    const AuthFailure(AuthError(AuthErrorKind.network)),
+  );
+
+  @override
+  Future<AuthResult> loginWithGoogleOneTap({required String credential}) async {
+    lastGoogleCredential = credential;
+    return _asFuture(loginWithGoogleOneTapResult);
+  }
+
   @override
   Future<bool> checkStatus() async => checkStatusResult;
 

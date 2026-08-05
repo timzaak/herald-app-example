@@ -64,6 +64,8 @@ dependencies:
   uuid: ^4.6.0
   flutter_markdown: ^0.7.7+1
   upgrader: ^13.6.0
+  sign_in_with_apple: ^6.1.4
+  google_sign_in: ^6.2.2
 
 dev_dependencies:
   flutter_test:

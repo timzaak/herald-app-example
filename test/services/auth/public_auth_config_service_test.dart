@@ -60,4 +60,53 @@ void main() {
       await expectLater(service.getConfig(), throwsFormatException);
     },
   );
+
+  test(
+    'parses enabled oauthProviders with clientId into enabledNativeProviderNames',
+    () async {
+      // WHY: native-login button visibility depends on public-config reporting
+      // the provider enabled with a non-empty clientId (DEC-006/007). A provider
+      // missing clientId or disabled must not light up a dead login button.
+      final dio = Dio(BaseOptions(baseUrl: 'https://herald.test'))
+        ..httpClientAdapter = _PublicConfigAdapter({
+          'registration': {'enabled': true, 'requireEmailVerification': false},
+          'oauthProviders': [
+            {
+              'name': 'apple',
+              'displayName': 'Apple',
+              'enabled': true,
+              'clientId': 'apple-svc-id',
+            },
+            {'name': 'google', 'displayName': 'Google', 'enabled': true},
+            {
+              'name': 'github',
+              'displayName': 'GitHub',
+              'enabled': false,
+              'clientId': 'gh-id',
+            },
+          ],
+        });
+      final service = HeraldPublicAuthConfigService(dio, 'realm-1');
+
+      final config = await service.getConfig();
+
+      expect(config.enabledNativeProviderNames, {'apple'});
+      expect(config.oauthProviders, hasLength(3));
+    },
+  );
+
+  test('missing oauthProviders array → empty list (buttons hidden)', () async {
+    // WHY: older backends may omit oauthProviders; the login page must hide
+    // native buttons rather than throw (fail closed, DEC-006).
+    final dio = Dio(BaseOptions(baseUrl: 'https://herald.test'))
+      ..httpClientAdapter = _PublicConfigAdapter({
+        'registration': {'enabled': true, 'requireEmailVerification': false},
+      });
+    final service = HeraldPublicAuthConfigService(dio, 'realm-1');
+
+    final config = await service.getConfig();
+
+    expect(config.oauthProviders, isEmpty);
+    expect(config.enabledNativeProviderNames, isEmpty);
+  });
 }

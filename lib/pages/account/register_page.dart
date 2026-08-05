@@ -54,6 +54,9 @@ class RegisterPage extends HookConsumerWidget {
         case AuthErrorKind.resetCodeInvalid:
         case AuthErrorKind.consentRequired:
         case AuthErrorKind.sessionExpired:
+        case AuthErrorKind.providerUnavailable:
+        case AuthErrorKind.serviceUnavailable:
+        case AuthErrorKind.cancelled:
           return l10n.unexpectedError(kind.name);
       }
     }

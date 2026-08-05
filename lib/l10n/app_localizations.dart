@@ -836,6 +836,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No active membership'**
   String get membershipNone;
+
+  /// No description provided for @signInWithApple.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with Apple'**
+  String get signInWithApple;
+
+  /// No description provided for @signInWithGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with Google'**
+  String get signInWithGoogle;
+
+  /// No description provided for @orUseEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'or use email'**
+  String get orUseEmail;
+
+  /// No description provided for @loginServiceUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Login service is temporarily unavailable. Please try again later.'**
+  String get loginServiceUnavailable;
+
+  /// No description provided for @nativeSignInCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in was not completed.'**
+  String get nativeSignInCancelled;
 }
 
 class _AppLocalizationsDelegate

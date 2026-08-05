@@ -69,6 +69,19 @@ abstract class HeraldAuthRepository {
     List<AuthConsentAgreement>? agreements,
   });
 
+  /// Apple Sign-In native login (iOS). Submits the Apple `identityToken` to
+  /// Herald's direct-session `POST /api/oauth/{realmId}/apple/native-login`
+  /// and reuses the same parse/persist path as password login — no OAuth
+  /// redirect branch (DEC-native-login-005).
+  Future<AuthResult> loginWithApple({required String identityToken});
+
+  /// Google One-Tap native login (Android). Submits the Google `credential`
+  /// (`idToken`) to Herald's direct-session
+  /// `POST /api/oauth/{realmId}/google/one-tap` and reuses the same
+  /// parse/persist path as password login — no OAuth redirect branch
+  /// (DEC-native-login-005).
+  Future<AuthResult> loginWithGoogleOneTap({required String credential});
+
   /// Startup login-state probe. True on 200 with `authenticated == true`;
   /// false on 401 (after the interceptor's single refresh attempt has
   /// failed). Never throws.
@@ -93,14 +106,17 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
   HeraldAuthRepositoryImpl(
     this._authApi,
     this._tokenStore, {
+    OauthApi? oauthApi,
     String? realmId,
     String? clientId,
     String? baseUrl,
-  }) : _realmId = realmId ?? Settings.heraldRealmId,
+  }) : _oauthApi = oauthApi, // ignore: prefer_initializing_formals
+       _realmId = realmId ?? Settings.heraldRealmId,
        _clientId = clientId ?? Settings.heraldClientId,
        _baseUrl = baseUrl ?? Settings.heraldBaseUrl;
 
   final AuthApi _authApi;
+  final OauthApi? _oauthApi;
   final TokenStore _tokenStore;
   final String _realmId;
   final String _clientId;
@@ -359,6 +375,57 @@ class HeraldAuthRepositoryImpl implements HeraldAuthRepository {
         return _parseRecovered(recovered, operation: 'totp');
       }
       return AuthFailure(_asAuthError(e, 'totp'));
+    }
+  }
+
+  @override
+  Future<AuthResult> loginWithApple({required String identityToken}) async {
+    if (_isConfigMissing() || _oauthApi == null) {
+      return const AuthFailure(AuthError.configMissing);
+    }
+    try {
+      final response = await _oauthApi.appleNativeLogin(
+        realmId: _realmId,
+        appleNativeRequest: AppleNativeRequest(
+          (b) => b
+            ..identityToken = identityToken
+            ..clientId = _clientId,
+        ),
+      );
+      return await _parseBranch(response.data, operation: 'appleNative');
+    } on Object catch (e) {
+      // Direct-session returns a flattened BrowserTokenSet body that the
+      // generator cannot deserialize into AppleNativeCodeResponse — recover
+      // the raw 200 body and lenient-parse it (same pattern as login/totp).
+      final recovered = _recover200(e);
+      if (recovered != null) {
+        return _parseRecovered(recovered, operation: 'appleNative');
+      }
+      return AuthFailure(_asAuthError(e, 'appleNative'));
+    }
+  }
+
+  @override
+  Future<AuthResult> loginWithGoogleOneTap({required String credential}) async {
+    if (_isConfigMissing() || _oauthApi == null) {
+      return const AuthFailure(AuthError.configMissing);
+    }
+    try {
+      final response = await _oauthApi.googleOneTap(
+        realmId: _realmId,
+        oneTapRequest: OneTapRequest(
+          (b) => b
+            ..credential = credential
+            ..clientId = _clientId,
+        ),
+      );
+      return await _parseBranch(response.data, operation: 'googleOneTap');
+    } on Object catch (e) {
+      final recovered = _recover200(e);
+      if (recovered != null) {
+        return _parseRecovered(recovered, operation: 'googleOneTap');
+      }
+      return AuthFailure(_asAuthError(e, 'googleOneTap'));
     }
   }
 

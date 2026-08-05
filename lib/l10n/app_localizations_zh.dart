@@ -395,6 +395,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get membershipNone => '暂无会员';
+
+  @override
+  String get signInWithApple => '通过 Apple 登录';
+
+  @override
+  String get signInWithGoogle => '使用 Google 登录';
+
+  @override
+  String get orUseEmail => '或使用邮箱';
+
+  @override
+  String get loginServiceUnavailable => '登录服务暂时不可用，请稍后重试。';
+
+  @override
+  String get nativeSignInCancelled => '未完成登录。';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -788,4 +803,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get membershipNone => '暫無會員';
+
+  @override
+  String get signInWithApple => '使用 Apple 登入';
+
+  @override
+  String get signInWithGoogle => '使用 Google 登入';
+
+  @override
+  String get orUseEmail => '或使用電子郵件';
+
+  @override
+  String get loginServiceUnavailable => '登入服務暫時無法使用，請稍後再試。';
+
+  @override
+  String get nativeSignInCancelled => '未完成登入。';
 }

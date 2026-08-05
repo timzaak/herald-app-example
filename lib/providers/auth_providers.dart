@@ -7,10 +7,13 @@ import 'package:app/services/auth/auth_result.dart';
 import 'package:app/services/auth/account_security_service.dart';
 import 'package:app/services/auth/herald_auth_repository.dart';
 import 'package:app/services/auth/legal_agreement_service.dart';
+import 'package:app/services/auth/native_sign_in_service.dart';
 import 'package:app/services/auth/public_auth_config_service.dart';
 import 'package:app/services/auth/token_store.dart';
 import 'package:app/services/auth/turnstile_service.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'dart:io' show Platform;
 
 /// Single source of truth for Herald login state (design §5.5).
 ///
@@ -134,6 +137,48 @@ class AuthStateNotifier extends Notifier<AuthState> {
     return result;
   }
 
+  /// Apple Sign-In native login (iOS). Obtains the Apple `identityToken` via
+  /// [NativeSignInService], then submits it to [HeraldAuthRepository]. If the
+  /// user cancels (Service returns null), returns [AuthFailure] with
+  /// `cancelled` and leaves the current session untouched. On success,
+  /// flips state to `authenticated` like password login.
+  Future<AuthResult> loginWithApple() async {
+    state = state.copyWith(loading: true);
+    final identityToken = await ref
+        .read(nativeSignInServiceProvider)
+        .requestAppleIdentityToken();
+    if (identityToken == null) {
+      state = state.copyWith(loading: false);
+      return const AuthFailure(AuthError(AuthErrorKind.cancelled));
+    }
+    final result = await _repository.loginWithApple(
+      identityToken: identityToken,
+    );
+    state = _applyResult(result);
+    return result;
+  }
+
+  /// Google One-Tap native login (Android). Obtains the Google `idToken` via
+  /// [NativeSignInService], then submits it to [HeraldAuthRepository]. If the
+  /// user cancels (Service returns null), returns [AuthFailure] with
+  /// `cancelled` and leaves the current session untouched. On success,
+  /// flips state to `authenticated` like password login.
+  Future<AuthResult> loginWithGoogleOneTap() async {
+    state = state.copyWith(loading: true);
+    final credential = await ref
+        .read(nativeSignInServiceProvider)
+        .requestGoogleIdToken();
+    if (credential == null) {
+      state = state.copyWith(loading: false);
+      return const AuthFailure(AuthError(AuthErrorKind.cancelled));
+    }
+    final result = await _repository.loginWithGoogleOneTap(
+      credential: credential,
+    );
+    state = _applyResult(result);
+    return result;
+  }
+
   /// Registration. Returns [RegisterResult]; no session state change. A
   /// failure throws [AuthErrorException] — the caller catches and surfaces the
   /// embedded [AuthError] via l10n (FL-D04 responsibility).
@@ -208,11 +253,23 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 });
 
 /// Single [HeraldAuthRepository] consumed by [AuthStateNotifier] and the
-/// startup `checkStatus` in `main.dart`.
+/// startup `checkStatus` in `main.dart`. Injects the generated [OauthApi] for
+/// the native-login endpoints (apple native-login / google one-tap).
 final heraldAuthRepositoryProvider = Provider<HeraldAuthRepository>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   final tokenStore = ref.watch(tokenStoreProvider);
-  return HeraldAuthRepositoryImpl(apiClient.getAuthApi(), tokenStore);
+  return HeraldAuthRepositoryImpl(
+    apiClient.getAuthApi(),
+    tokenStore,
+    oauthApi: apiClient.getOauthApi(),
+  );
+});
+
+/// Native sign-in plugin wrapper (Apple Sign-In / Google Sign-In). Default
+/// impl guards by platform; tests override with a fake that returns scripted
+/// tokens or null.
+final nativeSignInServiceProvider = Provider<NativeSignInService>((ref) {
+  return const PlatformNativeSignInService();
 });
 
 /// Per-Client-App Turnstile service. Reads `realmId` / `clientId` from
@@ -268,6 +325,41 @@ final registrationEnabledProvider = FutureProvider<bool>((ref) async {
 final accountSecurityServiceProvider = Provider<AccountSecurityService>((ref) {
   return HeraldAccountSecurityService(DioUtil.dio);
 });
+
+/// Native-login button availability per platform (design §4.4.2, DEC-native-login-002/007).
+/// A button shows only when: the running platform matches the provider
+/// (iOS→Apple, Android→Google) AND public-config reports the provider enabled
+/// with a non-empty `clientId`. Any fetch failure / missing field → button
+/// hidden (fail closed, never expose a dead login option).
+class NativeLoginAvailability {
+  final bool apple;
+  final bool google;
+  const NativeLoginAvailability({this.apple = false, this.google = false});
+}
+
+final nativeLoginAvailabilityProvider = FutureProvider<NativeLoginAvailability>(
+  (ref) async {
+    if (Settings.heraldRealmId.isEmpty) {
+      return const NativeLoginAvailability();
+    }
+    try {
+      final config = await ref
+          .watch(publicAuthConfigServiceProvider)
+          .getConfig();
+      final enabled = config.enabledNativeProviderNames;
+      return NativeLoginAvailability(
+        apple: _isApplePlatform && enabled.contains('apple'),
+        google: _isAndroidPlatform && enabled.contains('google'),
+      );
+    } on Object {
+      return const NativeLoginAvailability();
+    }
+  },
+);
+
+bool get _isApplePlatform => !kIsWeb && Platform.isIOS;
+
+bool get _isAndroidPlatform => !kIsWeb && Platform.isAndroid;
 
 /// Exposes the [DioAuthInterceptor] mounted on [DioUtil.dio] (FL-D01). This is
 /// the single Bearer-Authorization source. `main.dart` activates it via

@@ -125,5 +125,10 @@
         "description": "会员已开通标签，与权益 key 及计费类型一同展示。"
     },
     "membershipActive": "已开通",
-    "membershipNone": "暂无会员"
+    "membershipNone": "暂无会员",
+    "signInWithApple": "通过 Apple 登录",
+    "signInWithGoogle": "使用 Google 登录",
+    "orUseEmail": "或使用邮箱",
+    "loginServiceUnavailable": "登录服务暂时不可用，请稍后重试。",
+    "nativeSignInCancelled": "未完成登录。"
 }

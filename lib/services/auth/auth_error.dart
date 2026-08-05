@@ -20,6 +20,9 @@ enum AuthErrorKind {
   configMissing,
   sessionExpired,
   network,
+  providerUnavailable, // realm 未启用对应 OAuth provider (apple/google native-login).
+  serviceUnavailable, // 上游 JWKS / 登录服务不可达 (503).
+  cancelled, // 用户取消原生授权或平台未登录账号 (native sign-in only).
 }
 
 /// A classified auth error. [rawMessage] is for logs only — never render it.
@@ -53,6 +56,10 @@ class AuthError {
   /// - `"register"`: `email_already_exists` → `emailAlreadyRegistered`.
   /// - `"resetPasswordConfirm"`: 400/404 → `resetCodeInvalid`.
   /// - `"verifyEmailConfirm"`: 400/404 → `verificationCodeInvalid`.
+  /// - `"appleNative"` / `"googleOneTap"`: native direct-session login. 401 →
+  ///   `invalidCredentials` (invalid/expired/unverified upstream JWT); 404 →
+  ///   `providerUnavailable` (realm provider not enabled); 503 →
+  ///   `serviceUnavailable` (upstream JWKS unreachable).
   ///
   /// Common across all operations: 429 / known rate-limit code →
   /// `rateLimited`; `verify_turnstile_for_client_app` → `turnstileFailed`;
@@ -168,6 +175,22 @@ class AuthError {
 
       case 'resetPasswordRequest':
       case 'resendVerification':
+        return AuthError(AuthErrorKind.network, e.toString());
+
+      case 'appleNative':
+      case 'googleOneTap':
+        // Native direct-session login (Apple Sign-In / Google One-Tap).
+        // 401 → invalid/expired/unverified upstream JWT; 404 → realm provider
+        // not enabled; 503 → upstream JWKS unreachable.
+        if (statusCode == 401) {
+          return AuthError(AuthErrorKind.invalidCredentials, e.toString());
+        }
+        if (statusCode == 404) {
+          return AuthError(AuthErrorKind.providerUnavailable, e.toString());
+        }
+        if (statusCode == 503) {
+          return AuthError(AuthErrorKind.serviceUnavailable, e.toString());
+        }
         return AuthError(AuthErrorKind.network, e.toString());
 
       default:

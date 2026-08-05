@@ -57,6 +57,9 @@ class LoginPage extends HookConsumerWidget {
         ref.watch(emailOtpEnabledProvider).value ?? initialEmailOtpSent;
     final registrationEnabled =
         ref.watch(registrationEnabledProvider).value == true;
+    final nativeAvailability =
+        ref.watch(nativeLoginAvailabilityProvider).value ??
+        const NativeLoginAvailability();
     final tabController = useTabController(
       initialLength: 2,
       initialIndex: initialEmailOtpSent ? 1 : 0,
@@ -107,6 +110,12 @@ class LoginPage extends HookConsumerWidget {
         case AuthErrorKind.emailAlreadyRegistered:
         case AuthErrorKind.resetCodeInvalid:
           return l10n.unexpectedError(kind.name);
+        case AuthErrorKind.providerUnavailable:
+          return l10n.loginFailed(l10n.unexpectedError('provider'));
+        case AuthErrorKind.serviceUnavailable:
+          return l10n.loginServiceUnavailable;
+        case AuthErrorKind.cancelled:
+          return l10n.nativeSignInCancelled;
       }
     }
 
@@ -171,6 +180,30 @@ class LoginPage extends HookConsumerWidget {
         final error = result.error;
         if (error != null) {
           SmartDialog.showToast(errorForKind(error.kind));
+        }
+      } finally {
+        if (context.mounted) loading.value = false;
+      }
+    }
+
+    /// Native one-tap login (Apple on iOS / Google on Android). The native
+    /// direct-session path never returns totp/consent branches (DEC-native-login-005),
+    /// so only AuthSuccess / AuthFailure are handled.
+    Future<void> submitNative(Future<AuthResult> Function() run) async {
+      if (loading.value) return;
+      loading.value = true;
+      try {
+        final result = await run();
+        if (!context.mounted) return;
+        switch (result) {
+          case AuthSuccess():
+            context.go(safeAuthDestination(returnTo()));
+          case AuthRequiresTotp():
+          case AuthConsentRequired():
+            // Not produced by the native direct-session path; stay put.
+            break;
+          case AuthFailure(:final error):
+            SmartDialog.showToast(errorForKind(error.kind));
         }
       } finally {
         if (context.mounted) loading.value = false;
@@ -314,6 +347,77 @@ class LoginPage extends HookConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 32),
+                    if (nativeAvailability.apple ||
+                        nativeAvailability.google) ...[
+                      if (nativeAvailability.apple)
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            key: const ValueKey('appleSignInButton'),
+                            onPressed: loading.value
+                                ? null
+                                : () => submitNative(
+                                    () => ref
+                                        .read(authStateProvider.notifier)
+                                        .loginWithApple(),
+                                  ),
+                            style: TextButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              disabledBackgroundColor: Colors.black.withValues(
+                                alpha: 0.5,
+                              ),
+                            ),
+                            child: Text(
+                              l10n.signInWithApple,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      if (nativeAvailability.google) ...[
+                        if (nativeAvailability.apple)
+                          const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            key: const ValueKey('googleSignInButton'),
+                            onPressed: loading.value
+                                ? null
+                                : () => submitNative(
+                                    () => ref
+                                        .read(authStateProvider.notifier)
+                                        .loginWithGoogleOneTap(),
+                                  ),
+                            style: TextButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              disabledBackgroundColor: Colors.grey,
+                              side: const BorderSide(color: Colors.grey),
+                            ),
+                            child: Text(
+                              l10n.signInWithGoogle,
+                              style: const TextStyle(color: Colors.black87),
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              l10n.orUseEmail,
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     if (emailOtpEnabled)
                       TabBar(
                         controller: tabController,

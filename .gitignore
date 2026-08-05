@@ -39,6 +39,9 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Patrol run artifacts (demo-testing Authoring Gate: must be ignored)
+/patrol_test/test-results/
+
 # Symbolication related
 app.*.symbols
 

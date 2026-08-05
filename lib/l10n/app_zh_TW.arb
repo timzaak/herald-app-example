@@ -125,5 +125,10 @@
         "description": "會員已開通標籤，與權益 key 及計費類型一同顯示。"
     },
     "membershipActive": "已開通",
-    "membershipNone": "暫無會員"
+    "membershipNone": "暫無會員",
+    "signInWithApple": "使用 Apple 登入",
+    "signInWithGoogle": "使用 Google 登入",
+    "orUseEmail": "或使用電子郵件",
+    "loginServiceUnavailable": "登入服務暫時無法使用，請稍後再試。",
+    "nativeSignInCancelled": "未完成登入。"
 }

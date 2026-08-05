@@ -76,6 +76,11 @@ pumpHeraldApp(
       registrationEnabledProvider.overrideWith(
         (ref) async => registrationEnabled,
       ),
+      // Native-login buttons are hidden in widget tests by default (no real
+      // public-config fetch). Tests that need them pass their own override.
+      nativeLoginAvailabilityProvider.overrideWith(
+        (ref) => const NativeLoginAvailability(),
+      ),
       ...overrides,
     ],
   );

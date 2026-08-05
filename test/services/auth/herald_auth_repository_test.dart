@@ -99,11 +99,14 @@ ResponseBody _jsonBody(int status, Map<String, dynamic> body) =>
 /// Builds a [HeraldAuthRepositoryImpl] backed by a real [AuthApi] whose Dio is
 /// served by [adapter]. Realm/client/baseUrl default to non-empty values so
 /// the config-missing preflight passes; the preflight test passes blanks.
+/// When [withOauthApi] is true, an [OauthApi] on the same Dio is injected so the
+/// native-login endpoints (apple native-login / google one-tap) can be exercised.
 (HeraldAuthRepository, _FakeTokenStore) _buildRepo(
   _ScriptedAdapter adapter, {
   String realmId = 'realm-1',
   String clientId = 'client-1',
   String baseUrl = 'https://herald.test',
+  bool withOauthApi = false,
 }) {
   final dio = Dio(BaseOptions(baseUrl: baseUrl))..httpClientAdapter = adapter;
   final authApi = AuthApi(dio, standardSerializers);
@@ -111,6 +114,7 @@ ResponseBody _jsonBody(int status, Map<String, dynamic> body) =>
   final repo = HeraldAuthRepositoryImpl(
     authApi,
     tokenStore,
+    oauthApi: withOauthApi ? OauthApi(dio, standardSerializers) : null,
     realmId: realmId,
     clientId: clientId,
     baseUrl: baseUrl,
@@ -922,5 +926,207 @@ void main() {
         );
       },
     );
+  });
+
+  group('HeraldAuthRepository.loginWithApple', () {
+    test('direct-success (BrowserTokenSet) → AuthSuccess + persists', () async {
+      // WHY: native-login returns a flattened BrowserTokenSet body that the
+      // generator cannot deserialize into AppleNativeCodeResponse — the
+      // repository must recover the raw 200 body and parse accessToken,
+      // exactly like password login's direct-success branch.
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(200, {
+            'message': 'ok',
+            'userId': 'u1',
+            'accessToken': 'a-apple',
+            'refreshToken': 'r-apple',
+            'expiresIn': 3600,
+            'refreshExpiresIn': 86400,
+            'tokenType': 'Bearer',
+          }),
+        ],
+      );
+      final (repo, tokenStore) = _buildRepo(adapter, withOauthApi: true);
+
+      final result = await repo.loginWithApple(identityToken: 'apple.jwt');
+
+      expect(result, isA<AuthSuccess>());
+      final s = (result as AuthSuccess).session;
+      expect(s.accessToken, 'a-apple');
+      expect(s.refreshToken, 'r-apple');
+      expect(tokenStore.accessToken, 'a-apple');
+      expect(tokenStore.refreshToken, 'r-apple');
+      expect(
+        adapter.requestedPaths.last,
+        contains('/apple/native-login'),
+        reason: 'routed to the apple native-login endpoint',
+      );
+    });
+
+    test('401 → AuthFailure(invalidCredentials)', () async {
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(401, {'code': 'invalid_token', 'message': 'bad'}),
+        ],
+      );
+      final (repo, _) = _buildRepo(adapter, withOauthApi: true);
+
+      final result = await repo.loginWithApple(identityToken: 'apple.jwt');
+
+      expect(result, isA<AuthFailure>());
+      expect(
+        (result as AuthFailure).error.kind,
+        AuthErrorKind.invalidCredentials,
+      );
+    });
+
+    test('404 → AuthFailure(providerUnavailable)', () async {
+      // WHY: a 404 means the realm has not enabled the apple provider — the UI
+      // must surface a distinct kind so the button can be hidden / retried.
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(404, {'code': 'not_found', 'message': 'no provider'}),
+        ],
+      );
+      final (repo, _) = _buildRepo(adapter, withOauthApi: true);
+
+      final result = await repo.loginWithApple(identityToken: 'apple.jwt');
+
+      expect(result, isA<AuthFailure>());
+      expect(
+        (result as AuthFailure).error.kind,
+        AuthErrorKind.providerUnavailable,
+      );
+    });
+
+    test('503 → AuthFailure(serviceUnavailable)', () async {
+      // WHY: 503 means Apple JWKS is unreachable — a transient upstream failure
+      // distinct from invalid credentials or a missing provider.
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(503, {'code': 'upstream', 'message': 'jwks down'}),
+        ],
+      );
+      final (repo, _) = _buildRepo(adapter, withOauthApi: true);
+
+      final result = await repo.loginWithApple(identityToken: 'apple.jwt');
+
+      expect(result, isA<AuthFailure>());
+      expect(
+        (result as AuthFailure).error.kind,
+        AuthErrorKind.serviceUnavailable,
+      );
+    });
+
+    test(
+      'config missing (blank realm) → AuthFailure(configMissing), no request',
+      () async {
+        final adapter = _ScriptedAdapter(() => []);
+        final (repo, _) = _buildRepo(
+          adapter,
+          realmId: '',
+          clientId: 'client-1',
+          withOauthApi: true,
+        );
+
+        final result = await repo.loginWithApple(identityToken: 'apple.jwt');
+
+        expect(result, isA<AuthFailure>());
+        expect((result as AuthFailure).error.kind, AuthErrorKind.configMissing);
+        expect(adapter.requestedPaths, isEmpty);
+      },
+    );
+
+    test('no OauthApi injected → AuthFailure(configMissing)', () async {
+      // WHY: a repo constructed without the OauthApi (legacy callers) must not
+      // throw on a native call — it fails closed with configMissing.
+      final adapter = _ScriptedAdapter(() => []);
+      final (repo, _) = _buildRepo(adapter, withOauthApi: false);
+
+      final result = await repo.loginWithApple(identityToken: 'apple.jwt');
+
+      expect(result, isA<AuthFailure>());
+      expect((result as AuthFailure).error.kind, AuthErrorKind.configMissing);
+      expect(adapter.requestedPaths, isEmpty);
+    });
+  });
+
+  group('HeraldAuthRepository.loginWithGoogleOneTap', () {
+    test('direct-success (BrowserTokenSet) → AuthSuccess + persists', () async {
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(200, {
+            'message': 'ok',
+            'userId': 'u-g',
+            'accessToken': 'a-google',
+            'refreshToken': 'r-google',
+            'expiresIn': 3600,
+            'refreshExpiresIn': 86400,
+            'tokenType': 'Bearer',
+          }),
+        ],
+      );
+      final (repo, tokenStore) = _buildRepo(adapter, withOauthApi: true);
+
+      final result = await repo.loginWithGoogleOneTap(credential: 'google.jwt');
+
+      expect(result, isA<AuthSuccess>());
+      expect((result as AuthSuccess).session.accessToken, 'a-google');
+      expect(tokenStore.accessToken, 'a-google');
+      expect(
+        adapter.requestedPaths.last,
+        contains('/google/one-tap'),
+        reason: 'routed to the google one-tap endpoint',
+      );
+    });
+
+    test('401 (unverified email) → AuthFailure(invalidCredentials)', () async {
+      // WHY: Herald's google one-tap handler forces email_verified == true;
+      // a 401 here covers invalid/expired token OR unverified email — both map
+      // to invalidCredentials so the UI shows a single retry message.
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(401, {'code': 'invalid_token', 'message': 'bad'}),
+        ],
+      );
+      final (repo, _) = _buildRepo(adapter, withOauthApi: true);
+
+      final result = await repo.loginWithGoogleOneTap(credential: 'google.jwt');
+
+      expect(result, isA<AuthFailure>());
+      expect(
+        (result as AuthFailure).error.kind,
+        AuthErrorKind.invalidCredentials,
+      );
+    });
+
+    test('404 → AuthFailure(providerUnavailable)', () async {
+      final adapter = _ScriptedAdapter(
+        () => [
+          _jsonBody(404, {'code': 'not_found', 'message': 'no provider'}),
+        ],
+      );
+      final (repo, _) = _buildRepo(adapter, withOauthApi: true);
+
+      final result = await repo.loginWithGoogleOneTap(credential: 'google.jwt');
+
+      expect(result, isA<AuthFailure>());
+      expect(
+        (result as AuthFailure).error.kind,
+        AuthErrorKind.providerUnavailable,
+      );
+    });
+
+    test('config missing → AuthFailure(configMissing), no request', () async {
+      final adapter = _ScriptedAdapter(() => []);
+      final (repo, _) = _buildRepo(adapter, clientId: '', withOauthApi: true);
+
+      final result = await repo.loginWithGoogleOneTap(credential: 'google.jwt');
+
+      expect(result, isA<AuthFailure>());
+      expect((result as AuthFailure).error.kind, AuthErrorKind.configMissing);
+      expect(adapter.requestedPaths, isEmpty);
+    });
   });
 }

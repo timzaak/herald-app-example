@@ -125,5 +125,10 @@
     "description": "Membership active label, shown with the entitlement key and billing type."
   },
   "membershipActive": "Active",
-  "membershipNone": "No active membership"
+  "membershipNone": "No active membership",
+  "signInWithApple": "Sign in with Apple",
+  "signInWithGoogle": "Sign in with Google",
+  "orUseEmail": "or use email",
+  "loginServiceUnavailable": "Login service is temporarily unavailable. Please try again later.",
+  "nativeSignInCancelled": "Sign-in was not completed."
 }

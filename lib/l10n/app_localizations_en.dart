@@ -416,4 +416,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get membershipNone => 'No active membership';
+
+  @override
+  String get signInWithApple => 'Sign in with Apple';
+
+  @override
+  String get signInWithGoogle => 'Sign in with Google';
+
+  @override
+  String get orUseEmail => 'or use email';
+
+  @override
+  String get loginServiceUnavailable =>
+      'Login service is temporarily unavailable. Please try again later.';
+
+  @override
+  String get nativeSignInCancelled => 'Sign-in was not completed.';
 }
