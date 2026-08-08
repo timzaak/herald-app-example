@@ -43,3 +43,10 @@ patrol test
 优先级：稳定 `ValueKey` > Semantics label > 稳定文案 > icon/type。
 关键交互控件使用 `<domain>-<entity>-<action|field>` 命名的 `ValueKey`，
 例如 `login-email-input`、`login-submit-button`。
+
+## 测试命名约束
+
+`patrolTest` 的描述字符串**不得含 `/`**。AndroidX Test Orchestrator 用完整测试名
+（分组路径 + 描述）作为输出文件名，`/` 会被当作路径分隔符触发
+`IllegalArgumentException: contains a path separator`，导致整个 instrumentation 崩溃、
+`Total: 0`。需要并列时用顿号「、」或「与」代替斜杠。

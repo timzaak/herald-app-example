@@ -81,7 +81,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   mockito: ^5.4.4
   flutter_launcher_icons: ^0.14.3
-  patrol: 4.7.0 # pinned: 4.8.0 引入 Kotlin 编译回归（PatrolServer contracts 访问失败），见 AGENTS.md
+  patrol: 4.8.0 # 与同机 atool 项目对齐；配套 patrol_cli 4.6.1（官方兼容表 4.5.0~4.6.1）
   build_runner: ^2.4.0
   openapi_generator: ^7.0.0
 

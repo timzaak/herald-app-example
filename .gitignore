@@ -41,6 +41,7 @@ migrate_working_dir/
 
 # Patrol run artifacts (demo-testing Authoring Gate: must be ignored)
 /patrol_test/test-results/
+/patrol_test/test_bundle.dart
 
 # Symbolication related
 app.*.symbols

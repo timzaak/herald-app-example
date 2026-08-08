@@ -25,7 +25,7 @@ import 'package:patrol/patrol.dart';
 void main() {
   patrolTest(
     'US-NATIVE-LOGIN-001 场景1：Android 未登录用户进入登录页，邮箱登录入口始终存在'
-    '（#loginEmailField / #loginSubmitButton）',
+    '（#loginEmailField、#loginSubmitButton）',
     ($) async {
       await $.pumpWidgetAndSettle(const ProviderScope(child: MyApp()));
 
@@ -37,7 +37,7 @@ void main() {
   );
 
   patrolTest(
-    'US-NATIVE-LOGIN-001 场景1/2：Android 平台门控 —— Apple 按钮永不渲染'
+    'US-NATIVE-LOGIN-001 场景1与2：Android 平台门控 —— Apple 按钮永不渲染'
     '（#appleSignInButton 仅 iOS）',
     ($) async {
       await $.pumpWidgetAndSettle(const ProviderScope(child: MyApp()));
@@ -50,7 +50,7 @@ void main() {
   );
 
   patrolTest(
-    'US-NATIVE-LOGIN-001 场景1/2：Google 按钮可见性由 public-config provider 配置驱动',
+    'US-NATIVE-LOGIN-001 场景1与2：Google 按钮可见性由 public-config provider 配置驱动',
     ($) async {
       await $.pumpWidgetAndSettle(const ProviderScope(child: MyApp()));
 
