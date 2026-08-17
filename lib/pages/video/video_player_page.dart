@@ -49,8 +49,7 @@ class VideoPlayerPage extends HookConsumerWidget {
               DeviceOrientation.landscapeRight,
             ],
             deviceOrientationsAfterFullScreen: [
-              DeviceOrientation.landscapeLeft,
-              DeviceOrientation.landscapeRight,
+              DeviceOrientation.portraitUp,
             ],
             placeholder: const Center(child: CircularProgressIndicator()),
           );
@@ -66,9 +65,10 @@ class VideoPlayerPage extends HookConsumerWidget {
       initVideo();
 
       return () {
-        // SystemChrome.setPreferredOrientations([ // Revert to app's default orientations if system-wide changes were made
-        //   DeviceOrientation.portraitUp,
-        // ]);
+        // 全屏中直接退出页面时恢复全局竖屏锁（main.dart）。
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+        ]);
         videoPlayerController.value?.dispose();
         chewieController.value?.dispose();
       };

@@ -176,15 +176,19 @@ class ChangePasswordPage extends HookConsumerWidget {
                         ),
                       ),
                       const SizedBox(width: 8.0),
-                      TextButton(
-                        key: const ValueKey('passwordGetCodeButton'),
-                        onPressed: isCounting.value || loading.value
-                            ? null
-                            : getCode,
-                        child: Text(
-                          isCounting.value
-                              ? l10n.resendCode(countdown.value.toString())
-                              : l10n.getVerificationCode,
+                      Flexible(
+                        child: TextButton(
+                          key: const ValueKey('passwordGetCodeButton'),
+                          onPressed: isCounting.value || loading.value
+                              ? null
+                              : getCode,
+                          child: Text(
+                            isCounting.value
+                                ? l10n.resendCode(countdown.value.toString())
+                                : l10n.getVerificationCode,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
                     ],

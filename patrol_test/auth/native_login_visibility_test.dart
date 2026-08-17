@@ -4,7 +4,7 @@
 // US ID：US-NATIVE-LOGIN-001（P0，Android 上 Google 入口可见性与邮箱入口共存；
 //       平台门控下 Apple 按钮不渲染）。
 //
-// 运行（需 Android 设备 + patrol_cli，与 pubspec 锁定的 patrol 4.7.0 配套）：
+// 运行（需 Android 设备 + patrol_cli，与 pubspec 锁定的 patrol 版本配套）：
 //   dart pub global activate patrol_cli
 //   patrol test --target patrol_test/auth/native_login_visibility_test.dart --device <android-id>
 //
@@ -17,6 +17,7 @@
 //    因此用例按「后端 provider 配置」分两条断言路径，而不是硬编码一次性期望。
 
 import 'package:app/main.dart';
+import 'package:app/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -27,7 +28,13 @@ void main() {
     'US-NATIVE-LOGIN-001 场景1：Android 未登录用户进入登录页，邮箱登录入口始终存在'
     '（#loginEmailField、#loginSubmitButton）',
     ($) async {
-      await $.pumpWidgetAndSettle(const ProviderScope(child: MyApp()));
+      // 显式 seed 未登录态 + 真实 composition root：appRouter 守卫读 top-level
+      // heraldContainer，用同一容器包裹 widget 树（UncontrolledProviderScope），
+      // seed 表明未登录是确定输入而非默认巧合（与 app_smoke_test 同模式）。
+      heraldContainer.read(authStateProvider.notifier).seedAuthenticated(false);
+      await $.pumpWidgetAndSettle(
+        UncontrolledProviderScope(container: heraldContainer, child: const MyApp()),
+      );
 
       // 路由守卫（_anonymousPaths 含 /login；未认证访问 /index 重定向到 /login）
       // 保证未登录用户落到登录页。邮箱登录入口是跨 provider 配置的稳定结构。
@@ -40,7 +47,13 @@ void main() {
     'US-NATIVE-LOGIN-001 场景1与2：Android 平台门控 —— Apple 按钮永不渲染'
     '（#appleSignInButton 仅 iOS）',
     ($) async {
-      await $.pumpWidgetAndSettle(const ProviderScope(child: MyApp()));
+      // 显式 seed 未登录态 + 真实 composition root：appRouter 守卫读 top-level
+      // heraldContainer，用同一容器包裹 widget 树（UncontrolledProviderScope），
+      // seed 表明未登录是确定输入而非默认巧合（与 app_smoke_test 同模式）。
+      heraldContainer.read(authStateProvider.notifier).seedAuthenticated(false);
+      await $.pumpWidgetAndSettle(
+        UncontrolledProviderScope(container: heraldContainer, child: const MyApp()),
+      );
 
       // DEC-native-login-002：Apple 仅 iOS、Google 仅 Android，互斥。
       // 当前为 Android 运行时，Apple 按钮不存在与 provider 配置无关，
@@ -52,7 +65,13 @@ void main() {
   patrolTest(
     'US-NATIVE-LOGIN-001 场景1与2：Google 按钮可见性由 public-config provider 配置驱动',
     ($) async {
-      await $.pumpWidgetAndSettle(const ProviderScope(child: MyApp()));
+      // 显式 seed 未登录态 + 真实 composition root：appRouter 守卫读 top-level
+      // heraldContainer，用同一容器包裹 widget 树（UncontrolledProviderScope），
+      // seed 表明未登录是确定输入而非默认巧合（与 app_smoke_test 同模式）。
+      heraldContainer.read(authStateProvider.notifier).seedAuthenticated(false);
+      await $.pumpWidgetAndSettle(
+        UncontrolledProviderScope(container: heraldContainer, child: const MyApp()),
+      );
 
       final googleButton = $(const ValueKey('googleSignInButton'));
       final googleVisible = googleButton.evaluate().isNotEmpty;

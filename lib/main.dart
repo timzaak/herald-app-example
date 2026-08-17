@@ -6,7 +6,7 @@ import 'package:app/services/version_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:logging/logging.dart';
 import 'package:upgrader/upgrader.dart';
@@ -29,6 +29,10 @@ void main() {
   runZonedGuarded<Future<Null>>(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+      // 手机端锁定竖屏；视频全屏时由 chewie 临时切横屏（见 VideoPlayerPage）。
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+      ]);
       // 检查 是否时网页
       if (!kIsWeb) {
         // 检查版本更新
@@ -76,7 +80,7 @@ void main() {
       ///屏幕刷新率和显示率不一致时的优化，必须挪动到 runApp 之后
       GestureBinding.instance.resamplingEnabled = true;
     },
-    (exception, stackTrace) async {
+    (exception, stack) async {
       // FlutterBugly.init(
       //   androidAppId: "your android app id",
       //   iOSAppId: "your iOS app id",
@@ -105,37 +109,33 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(360, 690),
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (_, child) {
-        return MaterialApp.router(
-          title: 'Space',
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          debugShowCheckedModeBanner: kDebugMode,
-          theme: ThemeData(
-            appBarTheme: AppBarTheme(
-              backgroundColor: Colors.white,
-              iconTheme: IconThemeData(color: Colors.blue),
-              elevation: 0,
-            ),
-            scaffoldBackgroundColor: Colors.white,
-            primaryColor: Colors.blue,
-            visualDensity: VisualDensity.adaptivePlatformDensity,
-            colorScheme: ColorScheme.fromSwatch().copyWith(
-              secondary: Colors.white,
-            ),
-          ),
-          routerConfig: appRouter,
-          // UpgradeAlert 包裹 Navigator 子树以驱动应用内升级弹窗。
-          // 复用 VersionService.upgrader 暴露的 Upgrader.sharedInstance，
-          // 使启动时的 checkVersion() 预热结果与 widget 共享同一状态。
-          builder: (context, child) =>
-              UpgradeAlert(upgrader: VersionService().upgrader, child: child),
-        );
-      },
+    return MaterialApp.router(
+      title: 'Space',
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      debugShowCheckedModeBanner: kDebugMode,
+      theme: ThemeData(
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.white,
+          iconTheme: IconThemeData(color: Colors.blue),
+          elevation: 0,
+        ),
+        scaffoldBackgroundColor: Colors.white,
+        primaryColor: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        colorScheme: ColorScheme.fromSwatch().copyWith(
+          secondary: Colors.white,
+        ),
+      ),
+      routerConfig: appRouter,
+      // UpgradeAlert 包裹 Navigator 子树以驱动应用内升级弹窗。
+      // 复用 VersionService.upgrader 暴露的 Upgrader.sharedInstance，
+      // 使启动时的 checkVersion() 预热结果与 widget 共享同一状态。
+      // withClampedTextScaling 全局钳制系统大字体（手机端防表单溢出）。
+      builder: (context, child) => MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 1.3,
+        child: UpgradeAlert(upgrader: VersionService().upgrader, child: child),
+      ),
     );
   }
 }

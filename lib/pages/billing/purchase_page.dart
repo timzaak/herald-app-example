@@ -195,29 +195,33 @@ class PurchasePage extends HookConsumerWidget {
                   },
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (isRestoring)
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Center(
-                          child: SizedBox.square(
-                            dimension: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+              // SafeArea 防止 iOS 手势条/安卓导航条遮挡恢复购买按钮。
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (isRestoring)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: Center(
+                            child: SizedBox.square(
+                              dimension: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
                           ),
                         ),
+                      TextButton(
+                        // iap-restore-button: widget + integration test finder
+                        // anchor.
+                        key: const ValueKey('iap-restore-button'),
+                        onPressed: isRestoring || isPurchasing ? null : restore,
+                        child: Text(l10n.restorePurchase),
                       ),
-                    TextButton(
-                      // iap-restore-button: widget + integration test finder
-                      // anchor.
-                      key: const ValueKey('iap-restore-button'),
-                      onPressed: isRestoring || isPurchasing ? null : restore,
-                      child: Text(l10n.restorePurchase),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],

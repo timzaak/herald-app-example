@@ -403,13 +403,19 @@ class LoginPage extends HookConsumerWidget {
                       Row(
                         children: [
                           const Expanded(child: Divider()),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              l10n.orUseEmail,
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
+                          Flexible(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: Text(
+                                l10n.orUseEmail,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
                           ),
@@ -438,7 +444,8 @@ class LoginPage extends HookConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     SizedBox(
-                      height: 60,
+                      // 输入框高度随系统字体缩放（已全局钳制 1.3），否则大字体下溢出。
+                      height: MediaQuery.textScalerOf(context).scale(60),
                       child: TabBarView(
                         controller: tabController,
                         physics: emailOtpEnabled
